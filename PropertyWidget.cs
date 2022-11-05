@@ -1,0 +1,344 @@
+﻿using RPGStudioMK.Widgets;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection.Metadata.Ecma335;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+
+namespace VisualDesigner;
+
+public abstract class PropertyWidget : Widget
+{
+	protected Label NameLabel;
+	protected Property Property;
+	protected float HSeparatorX;
+
+	public PropertyWidget(IContainer Parent, Property Property, float HSeparatorX) : base(Parent)
+	{
+		this.Property = Property;
+		this.HSeparatorX = HSeparatorX;
+		NameLabel = new Label(this);
+		NameLabel.SetPosition(6, 6);
+        NameLabel.SetFont(Fonts.ParagraphBold);
+        NameLabel.SetText(Property.Name);
+		Sprites["box"] = new Sprite(this.Viewport);
+		Sprites["hsep"] = new Sprite(this.Viewport, new SolidBitmap(1, 28, new Color(86, 108, 134)));
+		Sprites["hsep"].Y = 2;
+		SetHeight(32);
+	}
+
+	public virtual void Refresh()
+	{
+		SetEnabled(Property.IsAvailable?.Invoke() ?? true);
+	}
+
+	public abstract void SetEnabled(bool Enabled);
+	
+	public override void SizeChanged(BaseEventArgs e)
+	{
+		base.SizeChanged(e);
+		Sprites["hsep"].X = (int) Math.Round(Size.Width * HSeparatorX);
+		NameLabel.SetWidthLimit(Sprites["hsep"].X - NameLabel.Position.X - 10);
+    }
+
+	public override void Redraw()
+	{
+		base.Redraw();
+		Sprites["box"].Bitmap?.Dispose();
+		Sprites["box"].Bitmap = new Bitmap(Size);
+		Sprites["box"].Bitmap.Unlock();
+		Sprites["box"].Bitmap.FillRect(Size, new Color(24, 38, 53));
+		Sprites["box"].Bitmap.Lock();
+	}
+}
+
+public class TextPropertyWidget : PropertyWidget
+{
+	protected VDTextBox TextBox;
+
+	public TextPropertyWidget(IContainer Parent, Property Property, float HSeparatorX) : base(Parent, Property, HSeparatorX)
+	{
+		TextBox = new VDTextBox(this);
+		Refresh();
+		TextBox.OnTextChanged += _ => Property.OnSetValue(TextBox.Text);
+    }
+
+	public override void Refresh()
+	{
+		base.Refresh();
+		object value = Property.GetValue();
+        if (value is string) TextBox.SetText((string) value);
+	}
+
+	public override void SetEnabled(bool Enabled)
+	{
+		TextBox.SetEnabled(Enabled);
+	}
+
+	public override void SizeChanged(BaseEventArgs e)
+	{
+		base.SizeChanged(e);
+		if (TextBox == null) return;
+		TextBox.SetPosition(Sprites["hsep"].X + 8, TextBox.Position.Y);
+		TextBox.SetSize(Size.Width - TextBox.Position.X - 4, TextBox.Size.Height);
+	}
+}
+
+public class NumericPropertyWidget : PropertyWidget
+{
+    VDTextBox TextBox;
+
+    public NumericPropertyWidget(IContainer Parent, Property Property, float HSeparatorX) : base(Parent, Property, HSeparatorX)
+    {
+        TextBox = new VDTextBox(this);
+		TextBox.SetNumericOnly(true);
+		TextBox.SetDefaultNumericValue((int) Property.GetValue());
+		Refresh();
+		TextBox.OnTextChanged += _ =>
+		{
+			if (string.IsNullOrEmpty(TextBox.Text)) return;
+			Property.OnSetValue(Convert.ToInt32(TextBox.Text));
+		};
+    }
+
+	public override void Refresh()
+	{
+		base.Refresh();
+        TextBox.SetText(((int) Property.GetValue()).ToString());
+    }
+
+	public override void SetEnabled(bool Enabled)
+	{
+		TextBox.SetEnabled(Enabled);
+	}
+
+	public override void SizeChanged(BaseEventArgs e)
+    {
+        base.SizeChanged(e);
+        if (TextBox == null) return;
+        TextBox.SetPosition(Sprites["hsep"].X + 8, TextBox.Position.Y);
+        TextBox.SetSize(Size.Width - TextBox.Position.X - 4, TextBox.Size.Height);
+    }
+}
+
+public class DropdownPropertyWidget : PropertyWidget
+{
+    protected VDDropdownBox DropdownBox;
+
+    public DropdownPropertyWidget(IContainer Parent, Property Property, float HSeparatorX) : base(Parent, Property, HSeparatorX)
+    {
+		DropdownBox = new VDDropdownBox(this);
+		DropdownBox.SetPosition(0, 4);
+		if (Property.Parameters is not List<string>) throw new Exception("Property must include a list of list items as parameters");
+		List<ListItem> Items = new List<ListItem>();
+		foreach (string s in (List<string>) Property.Parameters)
+		{
+			Items.Add(new ListItem(s));
+		}
+		DropdownBox.SetItems(Items);
+		Refresh();
+		DropdownBox.OnSelectionChanged += _ =>
+		{
+			Property.OnSetValue(DropdownBox.SelectedIndex);
+		};
+    }
+
+	public override void Refresh()
+	{
+		base.Refresh();
+        DropdownBox.SetSelectedIndex((int) Property.GetValue());
+    }
+
+	public override void SetEnabled(bool Enabled)
+	{
+		DropdownBox.SetEnabled(Enabled);
+	}
+
+	public override void SizeChanged(BaseEventArgs e)
+    {
+        base.SizeChanged(e);
+        if (DropdownBox == null) return;
+        DropdownBox.SetPosition(Sprites["hsep"].X + 4, DropdownBox.Position.Y);
+        DropdownBox.SetSize(Size.Width - DropdownBox.Position.X - 4, DropdownBox.Size.Height);
+    }
+}
+
+public class FontPropertyWidget : PropertyWidget
+{
+    VDDropdownBox DropdownBox;
+
+    public FontPropertyWidget(IContainer Parent, Property Property, float HSeparatorX) : base(Parent, Property, HSeparatorX)
+    {
+		DropdownBox = new VDDropdownBox(this);
+		DropdownBox.SetPosition(0, 4);
+		SetAvailableFonts();
+		Refresh();
+		DropdownBox.OnSelectionChanged += _ =>
+		{
+			if (DropdownBox.Items[DropdownBox.SelectedIndex].Object is string) // Create new...
+			{
+				GenericTextNumberWindow win = new GenericTextNumberWindow("New Font", "Name:", "", "Size: ", 10, 1, null);
+				win.OnClosed += _ =>
+				{
+					if (!win.Apply) return;
+					string name = win.Value1;
+					int size = win.Value2;
+					if (!Font.Exists(name))
+					{
+						new MessageBox("Error", $"No font exists at the specified path '{name}'.", ButtonType.OK);
+						DropdownBox.SetSelectedIndex(0);
+					}
+					else
+					{
+						Font f = new Font(name, size);
+                        Program.CustomFonts.Add(f);
+                        SetAvailableFonts();
+                        int idx = DropdownBox.Items.FindIndex(i => ((Font) i.Object).Equals(f));
+                        DropdownBox.SetSelectedIndex(idx);
+						Property.OnSetValue((Font) DropdownBox.Items[DropdownBox.SelectedIndex].Object);
+                    }
+				};
+			}
+			else Property.OnSetValue((Font) DropdownBox.Items[DropdownBox.SelectedIndex].Object);
+		};
+    }
+
+	public override void Refresh()
+	{
+		base.Refresh();
+		int idx = DropdownBox.Items.FindIndex(i => ((Font) i.Object).Equals((Font) Property.GetValue()));
+		if (idx > -1) DropdownBox.SetSelectedIndex(idx);
+		else
+		{
+			Program.CustomFonts.Add((Font) Property.GetValue());
+			SetAvailableFonts();
+            idx = DropdownBox.Items.FindIndex(i => ((Font)i.Object).Equals((Font) Property.GetValue()));
+            DropdownBox.SetSelectedIndex(idx);
+        }
+	}
+
+	public override void SetEnabled(bool Enabled)
+	{
+		DropdownBox.SetEnabled(Enabled);
+	}
+
+	void SetAvailableFonts()
+	{
+        List<ListItem> Items = new List<ListItem>();
+        foreach ((string alias, Font f) in Fonts.AllFonts)
+        {
+			Items.Add(new ListItem(alias, f));
+        }
+		foreach (Font f in Program.CustomFonts)
+		{
+            string name = f.Name.Split('/', '\\').Last();
+            if (name.EndsWith(".ttf")) name = name.Substring(0, name.Length - 4);
+			name = $"({f.Size}, {name})";
+			Items.Add(new ListItem(name, f));
+        }
+        Items.Add(new ListItem("Create new..."));
+        DropdownBox.SetItems(Items);
+    }
+
+    public override void SizeChanged(BaseEventArgs e)
+    {
+        base.SizeChanged(e);
+        if (DropdownBox == null) return;
+        DropdownBox.SetPosition(Sprites["hsep"].X + 4, DropdownBox.Position.Y);
+        DropdownBox.SetSize(Size.Width - DropdownBox.Position.X - 4, DropdownBox.Size.Height);
+    }
+}
+
+public class PaddingPropertyWidget : TextPropertyWidget
+{
+	public PaddingPropertyWidget(IContainer Parent, Property Property, float HSeparatorX) : base(Parent, Property, HSeparatorX)
+	{
+		TextBox.OnTextChanged.GetInvocationList().ToList().ForEach(d => TextBox.OnTextChanged -= (TextEvent) d);
+		Refresh();
+		TextBox.OnTextChanged += _ =>
+		{
+			Padding? padding = StringToPadding(TextBox.Text);
+			if (padding != null) Property.SetValue(padding);
+		};
+	}
+
+	public override void Refresh()
+	{
+		base.Refresh();
+		TextBox.SetText(PaddingToString((Padding) Property.GetValue()));
+	}
+
+	string PaddingToString(Padding p)
+	{
+		if (p.Left == p.Up & p.Up == p.Right && p.Right == p.Down) return p.Left.ToString();
+		else if (p.Left == p.Right && p.Up == p.Down) return $"{p.Left}, {p.Up}";
+		else return $"{p.Left}, {p.Up}, {p.Right}, {p.Down}";
+	}
+
+	Padding? StringToPadding(string Text)
+	{
+		Match m = Regex.Match(Text, @"^(\d+), *(\d+), *(\d+), *(\d+)$");
+		if (m.Success)
+		{
+			return new Padding(
+				Convert.ToInt32(m.Groups[1].Value),
+				Convert.ToInt32(m.Groups[2].Value),
+				Convert.ToInt32(m.Groups[3].Value),
+				Convert.ToInt32(m.Groups[4].Value)
+			);
+		}
+		m = Regex.Match(Text, @"^(\d+), *(\d+)$");
+		if (m.Success)
+		{
+            return new Padding(
+                Convert.ToInt32(m.Groups[1].Value),
+                Convert.ToInt32(m.Groups[2].Value)
+            );
+        }
+        m = Regex.Match(Text, @"^(\d+)$");
+        if (m.Success)
+        {
+            return new Padding(
+                Convert.ToInt32(m.Groups[1].Value)
+            );
+        }
+		return null;
+    }
+}
+
+public class BoolPropertyWidget : PropertyWidget
+{
+    protected CheckBox CheckBox;
+
+    public BoolPropertyWidget(IContainer Parent, Property Property, float HSeparatorX) : base(Parent, Property, HSeparatorX)
+    {
+        CheckBox = new CheckBox(this);
+		CheckBox.SetPosition(0, 6);
+        Refresh();
+        CheckBox.OnCheckChanged += _ =>
+        {
+            Property.OnSetValue(CheckBox.Checked);
+        };
+    }
+
+    public override void Refresh()
+    {
+        base.Refresh();
+        CheckBox.SetChecked((bool) Property.GetValue());
+    }
+
+	public override void SetEnabled(bool Enabled)
+	{
+		CheckBox.SetEnabled(Enabled);
+	}
+
+	public override void SizeChanged(BaseEventArgs e)
+    {
+        base.SizeChanged(e);
+        if (CheckBox == null) return;
+        CheckBox.SetPosition(Sprites["hsep"].X + 6, CheckBox.Position.Y);
+        CheckBox.SetSize(Size.Width - CheckBox.Position.X - 4, CheckBox.Size.Height);
+    }
+}

@@ -59,6 +59,8 @@ public class DesignWidget : Widget
 		MinimumSize = new Size(WidthAdd, HeightAdd);
 		SetPadding(WidgetPadding);
 
+		OnWidgetSelected += WidgetSelected;
+
 		this.Properties = new List<Property>()
 		{
 			new Property("Name", PropertyType.Text, () => Name, e => this.Name = (string) e),
@@ -202,6 +204,26 @@ public class DesignWidget : Widget
 			}
 		});
 
+		RegisterShortcuts(new List<Shortcut>()
+		{
+			new Shortcut(this, new Key(Keycode.LEFT), _ => MoveH(-1)),
+            new Shortcut(this, new Key(Keycode.LEFT, Keycode.SHIFT), _ => MoveH(-10)),
+            new Shortcut(this, new Key(Keycode.LEFT, Keycode.CTRL), _ => MoveH(-25)),
+            new Shortcut(this, new Key(Keycode.LEFT, Keycode.SHIFT, Keycode.CTRL), _ => MoveH(-50)),
+            new Shortcut(this, new Key(Keycode.UP), _ => MoveV(-1)),
+			new Shortcut(this, new Key(Keycode.UP, Keycode.SHIFT), _ => MoveV(-10)),
+            new Shortcut(this, new Key(Keycode.UP, Keycode.CTRL), _ => MoveV(-25)),
+            new Shortcut(this, new Key(Keycode.UP, Keycode.SHIFT, Keycode.CTRL), _ => MoveV(-50)),
+            new Shortcut(this, new Key(Keycode.RIGHT), _ => MoveH(1)),
+			new Shortcut(this, new Key(Keycode.RIGHT, Keycode.SHIFT), _ => MoveH(10)),
+            new Shortcut(this, new Key(Keycode.RIGHT, Keycode.CTRL), _ => MoveH(25)),
+            new Shortcut(this, new Key(Keycode.RIGHT, Keycode.SHIFT, Keycode.CTRL), _ => MoveH(50)),
+            new Shortcut(this, new Key(Keycode.DOWN), _ => MoveV(1)),
+			new Shortcut(this, new Key(Keycode.DOWN, Keycode.SHIFT), _ => MoveV(10)),
+            new Shortcut(this, new Key(Keycode.DOWN, Keycode.CTRL), _ => MoveV(25)),
+            new Shortcut(this, new Key(Keycode.DOWN, Keycode.SHIFT, Keycode.CTRL), _ => MoveV(50))
+        });
+
 		OnContextMenuOpening += e => e.Value = Selected;
 		OnSizeChanged += _ => { if (MayRefresh) Program.ParameterPanel.Refresh(); };
 		OnPositionChanged += _ =>
@@ -213,7 +235,15 @@ public class DesignWidget : Widget
                 LocalPosition = new Point(ParentPos.X + Position.X + Padding.Left, ParentPos.Y + Position.Y + Padding.Up);
 			}
 		};
-		OnPaddingChanged += _ => { if (MayRefresh) Program.ParameterPanel.Refresh(); };
+		OnPaddingChanged += _ => 
+		{
+			if (MayRefresh) Program.ParameterPanel.Refresh();
+            if (this is not DesignWindow)
+            {
+                Point ParentPos = ((DesignWidget)Parent).LocalPosition;
+                LocalPosition = new Point(ParentPos.X + Position.X + Padding.Left, ParentPos.Y + Position.Y + Padding.Up);
+            }
+        };
     }
 
 	public void Select()
@@ -348,6 +378,18 @@ public class DesignWidget : Widget
 		VSnapped = false;
 		SnapY = -1;
 		SnapHeight = -1;
+	}
+
+	public void MoveH(int Pixels)
+	{
+		if (this is DesignWindow) return;
+		if (!HDocked) SetPosition(Position.X + Pixels, Position.Y);
+	}
+
+	public void MoveV(int Pixels)
+    {
+        if (this is DesignWindow) return;
+        if (!VDocked) SetPosition(Position.X, Position.Y + Pixels);
 	}
 
 	public override void MouseMoving(MouseEventArgs e)

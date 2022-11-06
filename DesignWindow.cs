@@ -64,6 +64,7 @@ public class DesignWindow : DesignWidget
         Widget?.Select();
         CurrentlySelectedWidget = Widget;
         Program.ParameterPanel.SetWidget(Widget);
+        Window.UI.SetSelectedWidget(Widget);
     }
 
     public void SetTitle(string Title)
@@ -141,6 +142,7 @@ public class DesignWindow : DesignWidget
     {
         Rect r1 = new Rect(w1.LocalPosition, w1.Size);
         Rect r2 = new Rect(w2.LocalPosition, w2.Size);
+        if (w1 == MovingWidget) Console.WriteLine($"{r1.X}, {r2.X}");
         if (r1.X == r2.X)
         {
             int min = Math.Min(r1.Y + (r1.Height - HeightAdd) / 2, r2.Y + (r2.Height - HeightAdd) / 2);

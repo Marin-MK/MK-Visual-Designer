@@ -25,7 +25,9 @@ public class DesignWidget : Widget
 	public bool WithinResizeRegion = false;
 	public bool WithinMoveRegion = false;
 	public bool Moving = false;
+	public bool MovingMultiple = false;
 	public bool Resizing = false;
+	public bool CreatingSelection = false;
 	public bool ResizeMoveY = false;
 	public bool ResizeMoveX = false;
 	public bool ResizeHorizontalOnly = false;
@@ -33,21 +35,23 @@ public class DesignWidget : Widget
 	public bool ChildrenHidden = false;
 	public bool MayRefresh = true;
 
-	Point MouseOrigin;
-	Point PositionOrigin;
-	Size SizeOrigin;
-	Padding PaddingOrigin;
+	protected Point MouseOrigin;
+	protected Point PositionOrigin;
+	protected Size SizeOrigin;
+	protected Padding PaddingOrigin;
 
-	bool HSnapped;
-	bool VSnapped;
-	int SnapX;
-	int SnapWidth;
-	int SnapY;
-	int SnapHeight;
-    int SnapPaddingLeft;
-    int SnapPaddingRight;
-    int SnapPaddingUp;
-    int SnapPaddingDown;
+	protected bool HSnapped;
+	protected bool VSnapped;
+	protected int SnapX;
+	protected int SnapWidth;
+	protected int SnapY;
+	protected int SnapHeight;
+    protected int SnapPaddingLeft;
+    protected int SnapPaddingRight;
+    protected int SnapPaddingUp;
+    protected int SnapPaddingDown;
+
+	protected Container SelectionContainer;
 
     public DesignWidget(IContainer Parent, string BaseName) : base(Parent)
 	{
@@ -58,6 +62,11 @@ public class DesignWidget : Widget
 		Sprites["box"].Z = 10;
 		MinimumSize = new Size(WidthAdd, HeightAdd);
 		SetPadding(WidgetPadding);
+
+		SelectionContainer = new Container(this);
+		SelectionContainer.SetDocked(true);
+		SelectionContainer.SetPadding(WidgetPadding);
+		SelectionContainer.Sprites["sel"] = new Sprite(SelectionContainer.Viewport);
 
 		OnWidgetSelected += WidgetSelected;
 
@@ -84,6 +93,8 @@ public class DesignWidget : Widget
                 if (BottomDocked) UpdatePositionAndSizeIfDocked();
                 if (this is DesignWindow) ((DesignWindow) this).Center();
 			}),
+
+			new Property("BG Color", PropertyType.Color, () => BackgroundColor, e => SetBackgroundColor((Color) e)),
 
 			new Property("Docking", PropertyType.Dropdown, () => HDocked ? VDocked ? 3 : 1 : VDocked ? 2 : 0, e =>
 			{
@@ -240,22 +251,44 @@ public class DesignWidget : Widget
 			if (MayRefresh) Program.ParameterPanel.Refresh();
             if (this is not DesignWindow)
             {
-                Point ParentPos = ((DesignWidget)Parent).LocalPosition;
+                Point ParentPos = ((DesignWidget) Parent).LocalPosition;
                 LocalPosition = new Point(ParentPos.X + Position.X + Padding.Left, ParentPos.Y + Position.Y + Padding.Up);
             }
         };
     }
 
-	public void Select()
+	public void Select(bool AllowMultiple)
 	{
-		this.Selected = true;
-		UpdateBox(true);
+		if (!this.Selected)
+		{
+			if (!AllowMultiple) Program.DesignWindow.DeselectAll();
+			this.Selected = true;
+			UpdateBox(true);
+			Window.UI.SetSelectedWidget(this);
+			Program.DesignWindow.SelectedWidgets.Add(this);
+			if (Program.DesignWindow.SelectedWidgets.Count == 1) Program.ParameterPanel.SetWidget(this);
+			else Program.ParameterPanel.SetWidget(null);
+		}
+    }
+
+	public bool ContainsChild(DesignWidget Widget)
+	{
+		return Widgets.Contains(Widget) || Widgets.Any(w => w is DesignWidget && ((DesignWidget) w).ContainsChild(Widget));
+	}
+
+	public bool IsOrContainsSelectedExcept(DesignWidget Widget)
+	{
+		if (this.Selected && this != Widget) return true;
+		return Widgets.Any(w => w is DesignWidget && ((DesignWidget) w).IsOrContainsSelectedExcept(Widget));
 	}
 
 	public void Deselect()
 	{
-		this.Selected = false;
-		UpdateBox(true);
+		if (this.Selected)
+		{
+			this.Selected = false;
+			UpdateBox(true);
+		}
 	}
 
 	public void Create(DesignWidget Parent, string Type)
@@ -338,14 +371,40 @@ public class DesignWidget : Widget
 		PaddingOrigin = new Padding(Padding.Left, Padding.Up, Padding.Right, Padding.Down);
 		Resizing = WithinResizeRegion;
 		Moving = WithinMoveRegion && this is not DesignWindow;
-		Program.DesignWindow.MakeSelectedWidget(this);
-		UpdateBox(true);
+		CreatingSelection = WithinMoveRegion && this is DesignWindow;
+		if (Input.Press(Keycode.CTRL) && Moving)
+		{
+			Moving = false;
+			CreatingSelection = true;
+        }
+        MovingMultiple = Program.DesignWindow.SelectedWidgets.Count > 1;
+        if (!Input.Press(Keycode.SHIFT) && (!Moving || !MovingMultiple)) Program.DesignWindow.DeselectAll();
+        if (Moving)
+		{
+			// Deselect all selected child widgets, because they will already be moved by moving the parent
+			Program.DesignWindow.DeselectWidgetsWithoutSharedParents(this);
+            if (MovingMultiple)
+			{
+				Program.DesignWindow.SelectedWidgets.FindAll(w => w != this).ForEach(dw =>
+				{
+					dw.LeftPressCounts = true;
+					dw.Pressing = true;
+					dw.MouseOrigin = MouseOrigin;
+					dw.PositionOrigin = new Point(dw.Position.X, dw.Position.Y);
+					dw.PaddingOrigin = new Padding(dw.Padding.Left, dw.Padding.Up, dw.Padding.Right, dw.Padding.Down);
+					dw.Moving = true;
+					dw.MovingMultiple = true;
+				});
+			}
+		}
+        if (!CreatingSelection) Select(Input.Press(Keycode.SHIFT));
+        UpdateBox(true);
 	}
 
 	public override void RightMouseDownInside(MouseEventArgs e)
 	{
 		base.RightMouseDownInside(e);
-		if (Program.DesignWindow.HoveringWidget == this) Program.DesignWindow.MakeSelectedWidget(this);
+		if (Program.DesignWindow.HoveringWidget == this) Select(false);
 	}
 
 	public void SetHorizontallySnapped(int xadd = 0)
@@ -380,19 +439,79 @@ public class DesignWidget : Widget
 		SnapHeight = -1;
 	}
 
-	public void MoveH(int Pixels)
+	public void MoveH(int Pixels, bool CanMoveOtherSelectedWidgets = true)
 	{
 		if (this is DesignWindow) return;
 		if (!HDocked) SetPosition(Position.X + Pixels, Position.Y);
+		if (CanMoveOtherSelectedWidgets) Program.DesignWindow.SelectedWidgets.FindAll(w => w != this).ForEach(w => w.MoveH(Pixels, false));
 	}
 
-	public void MoveV(int Pixels)
+	public void MoveV(int Pixels, bool CanMoveOtherSelectedWidgets = true)
     {
         if (this is DesignWindow) return;
         if (!VDocked) SetPosition(Position.X, Position.Y + Pixels);
+        if (CanMoveOtherSelectedWidgets) Program.DesignWindow.SelectedWidgets.FindAll(w => w != this).ForEach(w => w.MoveV(Pixels, false));
+    }
+
+    // Move to DesignWidget.cs and make selections possible for every widget (e.g. for within a large Container widget, while not selecting random things outside the container that may overlap).
+    protected Rect? DrawSelectionBox(int x, int y, int width, int height)
+    {
+        SelectionContainer.Sprites["sel"].Bitmap?.Dispose();
+        if (x < 0)
+        {
+            width += x;
+            x = 0;
+        }
+		if (x >= SelectionContainer.Size.Width) return null;
+        if (x + width >= SelectionContainer.Size.Width) width -= x + width - SelectionContainer.Size.Width;
+        if (y < 0)
+        {
+            height += y;
+            y = 0;
+        }
+		if (y >= SelectionContainer.Size.Height) return null;
+        if (y + height >= SelectionContainer.Size.Height) height -= y + height - SelectionContainer.Size.Height;
+		if (width < 1 || height < 1) return null;
+		SelectionContainer.Sprites["sel"].X = x;
+		SelectionContainer.Sprites["sel"].Y = y;
+        SelectionContainer.Sprites["sel"].Bitmap = new Bitmap(width, height);
+        SelectionContainer.Sprites["sel"].Bitmap.Unlock();
+		for (int dy = 0; dy < height; dy++)
+		{
+			for (int dx = 0; dx < width; dx++)
+			{
+				if (dx == 0 || dy == 0 || dx == width - 1 || dy == height - 1)
+				{
+					if (dx != 2 && dx != width -3 && (dx == 0 || dx == 1 || dx == width - 1 || dx == width - 2 || ((dx + 2) / 4) % 2 == 0) &&
+						dy != 2 && dy != height - 3 && (dy == 0 || dy == 1 || dy == height - 1 || dy == height - 2 || ((dy + 2) / 4) % 2 == 0))
+						SelectionContainer.Sprites["sel"].Bitmap.SetPixel(dx, dy, new Color(128, 128, 128));
+				}
+			}
+		}
+        SelectionContainer.Sprites["sel"].Bitmap.Lock();
+		return new Rect(x, y, width, height);
+    }
+
+    void DisposeSelectionBox()
+    {
+        SelectionContainer.Sprites["sel"].Bitmap?.Dispose();
+    }
+
+	void SelectWidgetsInArea(Rect Area)
+	{
+		Program.DesignWindow.DeselectAll();
+		for (int i = 0; i < Widgets.Count; i++)
+		{
+			if (Widgets[i] is not DesignWidget) continue;
+			DesignWidget w = (DesignWidget) Widgets[i];
+			if (Area.Contains(w.Position.X + w.Padding.Left + w.Size.Width / 2, w.Position.Y + w.Padding.Right + w.Size.Height / 2))
+			{
+				w.Select(true);
+			}
+		}
 	}
 
-	public override void MouseMoving(MouseEventArgs e)
+    public override void MouseMoving(MouseEventArgs e)
 	{
 		base.MouseMoving(e);
 		WithinResizeRegion = false;
@@ -526,7 +645,13 @@ public class DesignWidget : Widget
                 SetHeight(SizeOrigin.Height + diffY);
 			}
 			SetPadding(padl, padu, padr, padd);
-			if (this is DesignWindow) Drawn = true;
+			if (this is DesignWindow)
+			{
+				Drawn = true;
+				Sprites["shadow"].Visible = false;
+				Sprites["window"].Visible = false;
+				Sprites["title"].Visible = false;
+			}
 			UpdateBox(true);
 			e.Handled = true;
 			if (!HasSnapped) Program.DesignWindow.DisposeSnaps();
@@ -534,7 +659,7 @@ public class DesignWidget : Widget
         }
 		else if (Moving)
         {
-            Program.DesignWindow.DrawSnaps(this, false, false, false);
+            if (!MovingMultiple) Program.DesignWindow.DrawSnaps(this, false, false, false);
             int diffX = e.X - MouseOrigin.X;
 			int diffY = e.Y - MouseOrigin.Y;
 			if (HDocked) diffX = 0;
@@ -558,9 +683,22 @@ public class DesignWidget : Widget
             if (diffX != 0 || diffY != 0) Input.SetCursor(CursorType.SizeAll);
 			int padl = PaddingOrigin.Left;
 			SetPosition(PositionOrigin.X + diffX, PositionOrigin.Y + diffY);
-			e.Handled = true;
 			if (!HasSnapped) Program.DesignWindow.DisposeSnaps();
 		}
+		else if (CreatingSelection)
+		{
+            int x1 = MouseOrigin.X - Viewport.X - WidgetPadding;
+            int y1 = MouseOrigin.Y - Viewport.Y - WidgetPadding;
+            int x2 = e.X - Viewport.X - WidgetPadding;
+            int y2 = e.Y - Viewport.Y - WidgetPadding;
+            int minx = Math.Min(x1, x2);
+            int miny = Math.Min(y1, y2);
+            int maxx = Math.Max(x1, x2);
+            int maxy = Math.Max(y1, y2);
+            Rect? SelectionBox = DrawSelectionBox(minx, miny, maxx - minx, maxy - miny);
+			if (SelectionBox != null) SelectWidgetsInArea(SelectionBox);
+			else Select(Input.Press(Keycode.SHIFT));
+        }
         else if (Hovering)
         {
             int rx = e.X - Viewport.X;
@@ -570,6 +708,7 @@ public class DesignWidget : Widget
 				// Inside widget, move the widget.
 				Input.SetCursor(CursorType.Arrow);
 				WithinMoveRegion = true;
+				WithinResizeRegion = false;
 			}
 			else
 			{
@@ -624,6 +763,7 @@ public class DesignWidget : Widget
 				ResizeHorizontalOnly = Horizontal;
 				ResizeVerticalOnly = Vertical;
 				WithinResizeRegion = true;
+				WithinMoveRegion = false;
 				e.Handled = true;
 			}
 		}
@@ -633,7 +773,7 @@ public class DesignWidget : Widget
 	public override void LeftMouseUp(MouseEventArgs e)
 	{
 		base.LeftMouseUp(e);
-		if (Mouse.LeftStartedInside && LeftPressCounts)
+		if (LeftPressCounts)
         {
             if (Resizing)
 			{
@@ -651,13 +791,19 @@ public class DesignWidget : Widget
 			ResizeHorizontalOnly = false;
 			ResizeVerticalOnly = false;
 			Moving = false;
+			MovingMultiple = false;
+			CreatingSelection = false;
 			ResetHSnap();
 			ResetVSnap();
+			DisposeSelectionBox();
 			if (ChildrenHidden)
 			{
 				Widgets.ForEach(w => w.SetVisible(true));
 				ChildrenHidden = false;
-			}
+                Sprites["shadow"].Visible = true;
+                Sprites["window"].Visible = true;
+                Sprites["title"].Visible = true;
+            }
             Input.SetCursor(CursorType.Arrow);
 			UpdateBox(true);
 			Program.DesignWindow.DisposeSnaps();

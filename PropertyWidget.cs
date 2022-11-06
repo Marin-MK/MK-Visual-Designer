@@ -361,15 +361,17 @@ public class BoolPropertyWidget : PropertyWidget
 public class ColorPropertyWidget : PropertyWidget
 {
     protected VDDropdownBox DropdownBox;
+	protected bool IncludeTransparency = true;
 
     public ColorPropertyWidget(IContainer Parent, Property Property, float HSeparatorX) : base(Parent, Property, HSeparatorX)
     {
         DropdownBox = new VDDropdownBox(this);
         DropdownBox.SetPosition(0, 4);
         Refresh();
+		IncludeTransparency = Property.Parameters is bool ? (bool) Property.Parameters : true;
 		DropdownBox.OnDropDownClicked += _ =>
 		{
-			ColorPickerWindow win = new ColorPickerWindow(TextToColor(DropdownBox.Text));
+			ColorPickerWindow win = new ColorPickerWindow(TextToColor(DropdownBox.Text), IncludeTransparency);
 			win.OnClosed += _ =>
 			{
 				if (!win.Apply) return;
@@ -382,16 +384,23 @@ public class ColorPropertyWidget : PropertyWidget
 	public Color TextToColor(string Text)
 	{
 		Match m = Regex.Match(Text, @"\((\d+), *(\d+), *(\d+)\)");
-		if (!m.Success) throw new Exception("Invalid color format.");
+		if (!m.Success)
+		{
+			if (IncludeTransparency) m = Regex.Match(Text, @"\((\d+), *(\d+), *(\d+), *(\d+)\)");
+			else throw new Exception("Invalid color format.");
+			if (!m.Success) throw new Exception("Invalid color format.");
+        }
 		int r = Convert.ToInt32(m.Groups[1].Value);
         int g = Convert.ToInt32(m.Groups[2].Value);
         int b = Convert.ToInt32(m.Groups[3].Value);
+		int a = m.Groups.Count == 5 ? Convert.ToInt32(m.Groups[4].Value) : 255;
 		if (r < 0 || g < 0 || b < 0 || r > 255 || g > 255 || b > 255) throw new Exception("Invalid color values.");
-		return new Color((byte) r, (byte) g, (byte) b);
+		return new Color((byte) r, (byte) g, (byte) b, (byte) a);
     }
 
 	public string ColorToText(Color Color)
 	{
+		if (IncludeTransparency) return $"({Color.Red}, {Color.Green}, {Color.Blue}, {Color.Alpha})";
 		return $"({Color.Red}, {Color.Green}, {Color.Blue})";
 	}
 

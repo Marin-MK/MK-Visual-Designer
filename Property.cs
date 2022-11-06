@@ -43,5 +43,6 @@ public enum PropertyType
     Dropdown,
     Font,
     Padding,
-    Boolean
+    Boolean,
+    Color
 }

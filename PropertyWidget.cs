@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -95,11 +96,25 @@ public class NumericPropertyWidget : PropertyWidget
         TextBox = new VDTextBox(this);
 		TextBox.SetNumericOnly(true);
 		TextBox.SetDefaultNumericValue((int) Property.GetValue());
+		int? MinValue = null;
+		int? MaxValue = null;
+		if (Property.Parameters is List<object>)
+		{
+			List<object> Params = (List<object>) Property.Parameters;
+			if (Params.Count == 2)
+			{
+				MinValue = (int?) Params[0];
+				MaxValue = (int?) Params[1];
+			}
+		}
 		Refresh();
 		TextBox.OnTextChanged += _ =>
 		{
-			if (string.IsNullOrEmpty(TextBox.Text)) return;
-			Property.OnSetValue(Convert.ToInt32(TextBox.Text));
+			if (string.IsNullOrEmpty(TextBox.Text) || !Utilities.IsNumeric(TextBox.Text)) return;
+			int value = Convert.ToInt32(TextBox.Text);
+			if (MinValue != null && value < MinValue) value = (int) MinValue;
+			if (MaxValue != null && value > MaxValue) value = (int) MaxValue;
+            Property.OnSetValue(value);
 		};
     }
 
@@ -340,5 +355,62 @@ public class BoolPropertyWidget : PropertyWidget
         if (CheckBox == null) return;
         CheckBox.SetPosition(Sprites["hsep"].X + 6, CheckBox.Position.Y);
         CheckBox.SetSize(Size.Width - CheckBox.Position.X - 4, CheckBox.Size.Height);
+    }
+}
+
+public class ColorPropertyWidget : PropertyWidget
+{
+    protected VDDropdownBox DropdownBox;
+
+    public ColorPropertyWidget(IContainer Parent, Property Property, float HSeparatorX) : base(Parent, Property, HSeparatorX)
+    {
+        DropdownBox = new VDDropdownBox(this);
+        DropdownBox.SetPosition(0, 4);
+        Refresh();
+		DropdownBox.OnDropDownClicked += _ =>
+		{
+			ColorPickerWindow win = new ColorPickerWindow(TextToColor(DropdownBox.Text));
+			win.OnClosed += _ =>
+			{
+				if (!win.Apply) return;
+				Property.SetValue(win.Value);
+				Refresh();
+			};
+		};
+    }
+
+	public Color TextToColor(string Text)
+	{
+		Match m = Regex.Match(Text, @"\((\d+), *(\d+), *(\d+)\)");
+		if (!m.Success) throw new Exception("Invalid color format.");
+		int r = Convert.ToInt32(m.Groups[1].Value);
+        int g = Convert.ToInt32(m.Groups[2].Value);
+        int b = Convert.ToInt32(m.Groups[3].Value);
+		if (r < 0 || g < 0 || b < 0 || r > 255 || g > 255 || b > 255) throw new Exception("Invalid color values.");
+		return new Color((byte) r, (byte) g, (byte) b);
+    }
+
+	public string ColorToText(Color Color)
+	{
+		return $"({Color.Red}, {Color.Green}, {Color.Blue})";
+	}
+
+    public override void Refresh()
+    {
+        base.Refresh();
+        DropdownBox.SetText(ColorToText((Color) Property.GetValue()));
+    }
+
+    public override void SetEnabled(bool Enabled)
+    {
+        DropdownBox.SetEnabled(Enabled);
+    }
+
+    public override void SizeChanged(BaseEventArgs e)
+    {
+        base.SizeChanged(e);
+        if (DropdownBox == null) return;
+        DropdownBox.SetPosition(Sprites["hsep"].X + 4, DropdownBox.Position.Y);
+        DropdownBox.SetSize(Size.Width - DropdownBox.Position.X - 4, DropdownBox.Size.Height);
     }
 }

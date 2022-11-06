@@ -12,32 +12,46 @@ public class DesignWidget : Widget
 	public static int WidgetPadding = 10;
 	public static int WidthAdd = WidgetPadding * 2;
 	public static int HeightAdd = WidgetPadding * 2;
+	public static int SnapDifference = 12;
 
 	public string Name { get; protected set; }
 	public bool Selected { get; protected set; }
 	public List<Property> Properties { get; init; }
+	public Point LocalPosition { get; protected set; } = new Point(0, 0);
 
-	bool Hovering = false;
-	bool Pressing = false;
-	bool LeftPressCounts = true;
-	bool WithinResizeRegion = false;
-	bool WithinMoveRegion = false;
-	bool Moving = false;
-	bool Resizing = false;
-	bool ResizeMoveY = false;
-	bool ResizeMoveX = false;
-	bool ResizeHorizontalOnly = false;
-	bool ResizeVerticalOnly = false;
-	bool ChildrenHidden = false;
-	bool MayRefresh = true;
+	public bool Hovering = false;
+	public bool Pressing = false;
+	public bool LeftPressCounts = true;
+	public bool WithinResizeRegion = false;
+	public bool WithinMoveRegion = false;
+	public bool Moving = false;
+	public bool Resizing = false;
+	public bool ResizeMoveY = false;
+	public bool ResizeMoveX = false;
+	public bool ResizeHorizontalOnly = false;
+	public bool ResizeVerticalOnly = false;
+	public bool ChildrenHidden = false;
+	public bool MayRefresh = true;
 
 	Point MouseOrigin;
 	Point PositionOrigin;
 	Size SizeOrigin;
 	Padding PaddingOrigin;
 
-	public DesignWidget(IContainer Parent) : base(Parent)
+	bool HSnapped;
+	bool VSnapped;
+	int SnapX;
+	int SnapWidth;
+	int SnapY;
+	int SnapHeight;
+    int SnapPaddingLeft;
+    int SnapPaddingRight;
+    int SnapPaddingUp;
+    int SnapPaddingDown;
+
+    public DesignWidget(IContainer Parent, string BaseName) : base(Parent)
 	{
+		this.Name = Program.DesignWindow?.GetName(BaseName);
 		Sprites["box"] = new Sprite(this.Viewport);
 		Sprites["box"].X = MousePadding;
 		Sprites["box"].Y = MousePadding;
@@ -190,7 +204,15 @@ public class DesignWidget : Widget
 
 		OnContextMenuOpening += e => e.Value = Selected;
 		OnSizeChanged += _ => { if (MayRefresh) Program.ParameterPanel.Refresh(); };
-		OnPositionChanged += _ => { if (MayRefresh) Program.ParameterPanel.Refresh(); };
+		OnPositionChanged += _ =>
+		{
+			if (MayRefresh) Program.ParameterPanel.Refresh();
+			if (this is not DesignWindow)
+			{
+                Point ParentPos = ((DesignWidget) Parent).LocalPosition;
+                LocalPosition = new Point(ParentPos.X + Position.X + Padding.Left, ParentPos.Y + Position.Y + Padding.Up);
+			}
+		};
 		OnPaddingChanged += _ => { if (MayRefresh) Program.ParameterPanel.Refresh(); };
     }
 
@@ -228,12 +250,52 @@ public class DesignWidget : Widget
 	public void CreateChild(string Type)
 	{
 		Create(this, Type);
+    }
+
+    public bool ExistsWithName(string Name)
+    {
+        return this.Name == Name || this.Widgets.Any(w => w is DesignWidget && ((DesignWidget) w).ExistsWithName(Name));
+    }
+
+    public string GetName(string BaseName)
+    {
+        string Name = BaseName;
+        int i = 0;
+        while (true)
+        {
+            Name = BaseName + i.ToString();
+            if (!ExistsWithName(Name)) return Name;
+            i++;
+        }
+    }
+
+	protected List<DesignWidget> GetHoveredWidgets(int gx, int gy)
+	{
+		List<DesignWidget> HoveringWidgets = new List<DesignWidget>();
+        for (int i = 0; i < Widgets.Count; i++)
+        {
+			if (Widgets[i] is not DesignWidget) continue;
+            DesignWidget w = (DesignWidget) Widgets[i];
+            if (w.Viewport.Rect.Contains(gx, gy))
+            {
+				// Within this widget, now check its children
+				List<DesignWidget> hov = w.GetHoveredWidgets(gx, gy);
+				HoveringWidgets.Add(w);
+				if (hov.Count > 0) HoveringWidgets.AddRange(hov);
+            }
+        }
+		return HoveringWidgets;
+    }
+
+	public List<DesignWidget> GetChildWidgets()
+	{
+		return Widgets.FindAll(w => w is DesignWidget).Select(w => (DesignWidget) w).ToList();
 	}
 
-	public override void LeftMouseDownInside(MouseEventArgs e)
+    public override void LeftMouseDownInside(MouseEventArgs e)
 	{
 		base.LeftMouseDownInside(e);
-		if (HoveringChild())
+		if (Program.DesignWindow.HoveringWidget != this)
 		{
 			LeftPressCounts = false;
 			return;
@@ -253,7 +315,39 @@ public class DesignWidget : Widget
 	public override void RightMouseDownInside(MouseEventArgs e)
 	{
 		base.RightMouseDownInside(e);
-		if (!HoveringChild()) Program.DesignWindow.MakeSelectedWidget(this);
+		if (Program.DesignWindow.HoveringWidget == this) Program.DesignWindow.MakeSelectedWidget(this);
+	}
+
+	public void SetHorizontallySnapped(int xadd = 0)
+	{
+		HSnapped = true;
+		SnapX = Position.X + xadd;
+		SnapWidth = Size.Width;
+		SnapPaddingLeft = Padding.Left;
+		SnapPaddingRight = Padding.Right;
+	}
+
+	public void SetVerticallySnapped()
+	{
+		VSnapped = true;
+		SnapY = Position.Y;
+		SnapHeight = Size.Height;
+		SnapPaddingUp = Padding.Up;
+		SnapPaddingDown = Padding.Down;
+	}
+
+	public void ResetHSnap()
+	{
+		HSnapped = false;
+		SnapX = -1;
+		SnapWidth = -1;
+	}
+
+	public void ResetVSnap()
+	{
+		VSnapped = false;
+		SnapY = -1;
+		SnapHeight = -1;
 	}
 
 	public override void MouseMoving(MouseEventArgs e)
@@ -261,16 +355,16 @@ public class DesignWidget : Widget
 		base.MouseMoving(e);
 		WithinResizeRegion = false;
 		bool OldHover = Hovering;
-		Hovering = Mouse.Inside && !HoveringChild();
+		Hovering = Program.DesignWindow.HoveringWidget == this;
+		bool HasSnapped = false;
 		if (OldHover != Hovering) UpdateBox(false);
 		if (Resizing)
-		{
-            int diffY = e.Y - MouseOrigin.Y;
+        {
             int diffX = e.X - MouseOrigin.X;
+            int diffY = e.Y - MouseOrigin.Y;
             if (ResizeVerticalOnly) diffX = 0;
             if (ResizeHorizontalOnly) diffY = 0;
-            if (diffX == 0 && diffY == 0) return;
-			if (this is DesignWindow && !ChildrenHidden)
+            if (this is DesignWindow && !ChildrenHidden)
 			{
 				Widgets.ForEach(w => w.SetVisible(false));
 				ChildrenHidden = true;
@@ -279,50 +373,151 @@ public class DesignWidget : Widget
 			int padu = PaddingOrigin.Up;
 			int padr = PaddingOrigin.Right;
 			int padd = PaddingOrigin.Down;
-			if (diffX != 0)
+			if (ResizeMoveX)
 			{
-				if (ResizeMoveX)
-				{
-					if (HDocked) padl += diffX;
-					else SetPosition(PositionOrigin.X + diffX, Position.Y);
-					diffX = -diffX;
-				}
 				if (HDocked)
 				{
-					if (!ResizeMoveX) padr -= diffX;
+                    if (HSnapped)
+                    {
+						if (Math.Abs(PaddingOrigin.Left + diffX - SnapPaddingLeft) < SnapDifference && !Input.Press(Keycode.ALT))
+						{
+							diffX = SnapPaddingLeft - PaddingOrigin.Left;
+							HasSnapped = true;
+						}
+                    }
+                    padl += diffX;
 				}
-				else SetWidth(SizeOrigin.Width + diffX);
-			}
-			if (diffY != 0)
-			{
-				if (ResizeMoveY)
+				else
 				{
-					if (VDocked) padu += diffY;
-					else SetPosition(Position.X, PositionOrigin.Y + diffY);
-					diffY = -diffY;
+                    if (HSnapped)
+                    {
+						if (Math.Abs(PositionOrigin.X + diffX - SnapX) < SnapDifference && !Input.Press(Keycode.ALT))
+						{
+							diffX = SnapX - PositionOrigin.X;
+							HasSnapped = true;
+						}
+					}
+                    SetPosition(PositionOrigin.X + diffX, Position.Y);
 				}
+				diffX = -diffX;
+			}
+			if (HDocked)
+			{
+				if (!ResizeMoveX)
+				{
+					if (HSnapped)
+					{
+						if (Math.Abs(PaddingOrigin.Right + diffX - SnapPaddingRight) < SnapDifference && !Input.Press(Keycode.ALT))
+						{
+							diffX = SnapPaddingRight - PaddingOrigin.Right;
+                            HasSnapped = true;
+                        }
+					}
+					padr -= diffX;
+				}
+			}
+			else
+			{
+                if (HSnapped)
+                {
+					if (Math.Abs(SizeOrigin.Width + diffX - SnapWidth) < SnapDifference && !Input.Press(Keycode.ALT))
+					{
+						diffX = SnapWidth - SizeOrigin.Width;
+                        HasSnapped = true;
+                    }
+                }
+                SetWidth(SizeOrigin.Width + diffX);
+			}
+            if (ResizeMoveY)
+			{
 				if (VDocked)
 				{
-					if (!ResizeMoveY) padd -= diffY;
+                    if (VSnapped)
+                    {
+						if (Math.Abs(PaddingOrigin.Up + diffY - SnapPaddingUp) < SnapDifference && !Input.Press(Keycode.ALT))
+						{
+							diffY = SnapPaddingUp - PaddingOrigin.Up;
+                            HasSnapped = true;
+                        }
+                    }
+                    padu += diffY;
 				}
-				else SetHeight(SizeOrigin.Height + diffY);
+				else
+				{
+                    if (VSnapped)
+                    {
+						if (Math.Abs(PositionOrigin.Y + diffY - SnapY) < SnapDifference && !Input.Press(Keycode.ALT))
+						{
+							diffY = SnapY - PositionOrigin.Y;
+                            HasSnapped = true;
+                        }
+                    }
+                    SetPosition(Position.X, PositionOrigin.Y + diffY);
+				}
+				diffY = -diffY;
+			}
+			if (VDocked)
+			{
+				if (!ResizeMoveY)
+				{
+					if (VSnapped)
+					{
+						if (Math.Abs(PaddingOrigin.Down + diffY - SnapPaddingDown) < SnapDifference && !Input.Press(Keycode.ALT))
+						{
+							diffY = SnapPaddingDown - PaddingOrigin.Down;
+                            HasSnapped = true;
+                        }
+					}
+					padu -= diffY;
+				}
+			}
+			else
+			{
+                if (VSnapped)
+                {
+					if (Math.Abs(SizeOrigin.Height + diffY - SnapHeight) < SnapDifference && !Input.Press(Keycode.ALT))
+					{
+						diffY = SnapHeight - SizeOrigin.Height;
+                        HasSnapped = true;
+                    }
+                }
+                SetHeight(SizeOrigin.Height + diffY);
 			}
 			SetPadding(padl, padu, padr, padd);
 			if (this is DesignWindow) Drawn = true;
 			UpdateBox(true);
 			e.Handled = true;
+			if (!HasSnapped) Program.DesignWindow.DisposeSnaps();
+            Program.DesignWindow.DrawSnaps(this, true, ResizeMoveX, ResizeMoveY);
         }
 		else if (Moving)
-		{
-			int diffX = e.X - MouseOrigin.X;
+        {
+            Program.DesignWindow.DrawSnaps(this, false, false, false);
+            int diffX = e.X - MouseOrigin.X;
 			int diffY = e.Y - MouseOrigin.Y;
 			if (HDocked) diffX = 0;
 			if (VDocked) diffY = 0;
-			if (diffX == 0 && diffY == 0) return;
-			Input.SetCursor(CursorType.SizeAll);
+			if (HSnapped)
+			{
+				if (Math.Abs(PositionOrigin.X + diffX - SnapX) < SnapDifference && !Input.Press(Keycode.ALT))
+				{
+					diffX = SnapX - PositionOrigin.X;
+                    HasSnapped = true;
+                }
+			}
+			if (VSnapped)
+			{
+				if (Math.Abs(PositionOrigin.Y + diffY - SnapY) < SnapDifference && !Input.Press(Keycode.ALT))
+				{
+					diffY = SnapY - PositionOrigin.Y;
+                    HasSnapped = true;
+                }
+			}
+            if (diffX != 0 || diffY != 0) Input.SetCursor(CursorType.SizeAll);
 			int padl = PaddingOrigin.Left;
 			SetPosition(PositionOrigin.X + diffX, PositionOrigin.Y + diffY);
 			e.Handled = true;
+			if (!HasSnapped) Program.DesignWindow.DisposeSnaps();
 		}
         else if (Hovering)
         {
@@ -390,12 +585,7 @@ public class DesignWidget : Widget
 				e.Handled = true;
 			}
 		}
-		else if (!Pressing && !HoveringChild() && Program.DesignContainer.Mouse.Inside) Input.SetCursor(CursorType.Arrow);
-	}
-
-	bool HoveringChild()
-	{
-		return Widgets.Any(w => w.Mouse.Inside || ((DesignWidget) w).HoveringChild());
+		else if (!Pressing && Program.DesignContainer.Mouse.Inside) Input.SetCursor(CursorType.Arrow);
 	}
 
 	public override void LeftMouseUp(MouseEventArgs e)
@@ -419,6 +609,8 @@ public class DesignWidget : Widget
 			ResizeHorizontalOnly = false;
 			ResizeVerticalOnly = false;
 			Moving = false;
+			ResetHSnap();
+			ResetVSnap();
 			if (ChildrenHidden)
 			{
 				Widgets.ForEach(w => w.SetVisible(true));
@@ -426,6 +618,7 @@ public class DesignWidget : Widget
 			}
             Input.SetCursor(CursorType.Arrow);
 			UpdateBox(true);
+			Program.DesignWindow.DisposeSnaps();
 		}
 	}
 

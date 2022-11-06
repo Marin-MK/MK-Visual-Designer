@@ -41,9 +41,8 @@ public class DesignButton : DesignWidget
 
     int MaxWidth;
 
-    public DesignButton(IContainer Parent) : base(Parent)
+    public DesignButton(IContainer Parent) : base(Parent, "UnnamedButton")
 	{
-        this.Name = "UnnamedButton";
         this.Font = Fonts.ParagraphBold;
 
         Bitmap corner = ButtonCornerFade;

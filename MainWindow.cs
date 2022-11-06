@@ -30,8 +30,6 @@ public class MainWindow : UIWindow
 		DesignWindow = new DesignWindow(DesignContainer);
 		DesignWindow.SetSize(640 + DesignWidget.WidthAdd, 480 + DesignWidget.HeightAdd);
 		DesignWindow.SetTitle("Unnamed");
-
-		Program.DesignWindow = DesignWindow;
 		DesignWindow.MakeSelectedWidget(DesignWindow);
 	}
 

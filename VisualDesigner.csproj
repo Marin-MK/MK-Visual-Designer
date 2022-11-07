@@ -10,6 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\JSONParser\JSONParser.csproj" />
     <ProjectReference Include="..\amethyst\amethyst.csproj" />
     <ProjectReference Include="..\editor\RPGStudioMK.csproj" />
     <ProjectReference Include="..\NativeLibraryLoader\NativeLibraryLoader.csproj" />

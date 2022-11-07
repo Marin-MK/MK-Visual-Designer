@@ -14,7 +14,7 @@ public class DesignWidget : Widget
 	public static int HeightAdd = WidgetPadding * 2;
 	public static int SnapDifference = 12;
 
-	public string Name { get; protected set; }
+	public string Name { get; set; }
 	public bool Selected { get; protected set; }
 	public List<Property> Properties { get; init; }
 	public Point LocalPosition { get; protected set; } = new Point(0, 0);
@@ -56,7 +56,9 @@ public class DesignWidget : Widget
     public DesignWidget(IContainer Parent, string BaseName) : base(Parent)
 	{
 		this.Name = Program.DesignWindow?.GetName(BaseName);
-		Sprites["box"] = new Sprite(this.Viewport);
+		Sprites["_bg"].X = WidgetPadding;
+		Sprites["_bg"].Y = WidgetPadding;
+        Sprites["box"] = new Sprite(this.Viewport);
 		Sprites["box"].X = MousePadding;
 		Sprites["box"].Y = MousePadding;
 		Sprites["box"].Z = 10;
@@ -198,20 +200,34 @@ public class DesignWidget : Widget
 			},
 			new MenuItem("Copy")
 			{
-
+				Shortcut = "Ctrl+C",
+				OnClicked = _ => CopySelection()
 			},
 			new MenuItem("Cut")
 			{
-
+				Shortcut = "Ctrl+X",
+				OnClicked = _ => CutSelection()
 			},
 			new MenuItem("Paste")
 			{
-
+				Shortcut = "Ctrl+V",
+				OnClicked = _ => PasteSelection(true)
+			},
+			new MenuItem("Paste as Sibling")
+			{
+				Shortcut = "Ctrl+Shift+V",
+				OnClicked = _ => PasteSelection(false)
+			},
+			new MenuItem("Duplicate")
+			{
+				Shortcut = "Ctrl+D",
+				OnClicked = _ => DuplicateSelection()
 			},
 			new MenuSeparator(),
 			new MenuItem("Delete")
 			{
-
+				Shortcut = "Del",
+				OnClicked = _ => DeleteSelection()
 			}
 		});
 
@@ -232,7 +248,13 @@ public class DesignWidget : Widget
             new Shortcut(this, new Key(Keycode.DOWN), _ => MoveV(1)),
 			new Shortcut(this, new Key(Keycode.DOWN, Keycode.SHIFT), _ => MoveV(10)),
             new Shortcut(this, new Key(Keycode.DOWN, Keycode.CTRL), _ => MoveV(25)),
-            new Shortcut(this, new Key(Keycode.DOWN, Keycode.SHIFT, Keycode.CTRL), _ => MoveV(50))
+            new Shortcut(this, new Key(Keycode.DOWN, Keycode.SHIFT, Keycode.CTRL), _ => MoveV(50)),
+			new Shortcut(this, new Key(Keycode.DELETE), _ => DeleteSelection()),
+			new Shortcut(this, new Key(Keycode.C, Keycode.CTRL), _ => CopySelection()),
+			new Shortcut(this, new Key(Keycode.X, Keycode.CTRL), _ => CutSelection()),
+			new Shortcut(this, new Key(Keycode.V, Keycode.CTRL), _ => PasteSelection(true)),
+			new Shortcut(this, new Key(Keycode.V, Keycode.SHIFT, Keycode.CTRL), _ => PasteSelection(false)),
+			new Shortcut(this, new Key(Keycode.D, Keycode.CTRL), _ => DuplicateSelection())
         });
 
 		OnContextMenuOpening += e => e.Value = Selected;
@@ -256,6 +278,46 @@ public class DesignWidget : Widget
             }
         };
     }
+
+	public void CopySelection(bool Delete = false)
+	{
+		if (this is DesignWindow) return;
+		string json = Program.WidgetsToJSON(Program.DesignWindow.SelectedWidgets);
+		Program.CopyData = json;
+	}
+
+	public void CutSelection()
+	{
+		if (this is DesignWindow) return;
+		CopySelection();
+		DeleteSelection();
+	}
+
+	public void PasteSelection(bool AsChild)
+	{
+		if (string.IsNullOrEmpty(Program.CopyData)) return;
+		string json = Program.CopyData;
+		List<DesignWidget> Widgets = Program.JSONToWidgets(AsChild ? this : (DesignWidget) Parent, json);
+		Program.DesignWindow.DeselectAll();
+		Widgets.ForEach(w => w.Select(true));
+	}
+
+	public void DuplicateSelection()
+	{
+		if (this is DesignWindow) return;
+		CopySelection();
+		PasteSelection(false);
+	}
+
+	public void DeleteSelection()
+	{
+		if (this is DesignWindow) return;
+		while (Program.DesignWindow.SelectedWidgets.Count > 0)
+		{
+			Program.DesignWindow.SelectedWidgets[0].Dispose();
+			Program.DesignWindow.SelectedWidgets.RemoveAt(0);
+		}
+	}
 
 	public void Select(bool AllowMultiple)
 	{
@@ -659,7 +721,7 @@ public class DesignWidget : Widget
         }
 		else if (Moving)
         {
-            if (!MovingMultiple) Program.DesignWindow.DrawSnaps(this, false, false, false);
+            Program.DesignWindow.DrawSnaps(this, false, false, false, MovingMultiple);
             int diffX = e.X - MouseOrigin.X;
 			int diffY = e.Y - MouseOrigin.Y;
 			if (HDocked) diffX = 0;
@@ -814,7 +876,8 @@ public class DesignWidget : Widget
 	{
 		base.SizeChanged(e);
 		UpdateBox(true);
-	}
+        ((SolidBitmap) Sprites["_bg"].Bitmap).SetSize(Size.Width - WidgetPadding * 2, Size.Height - WidgetPadding * 2);
+    }
 
 	void UpdateBox(bool Redraw)
 	{

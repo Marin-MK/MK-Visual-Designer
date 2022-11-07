@@ -167,10 +167,10 @@ public class DesignWindow : DesignWidget
         Sprites["title"].Bitmap.Lock();
     }
 
-    public void DrawSnaps(DesignWidget MovingWidget, bool SizeSnapsOnly, bool ResizeMoveX, bool ResizeMoveY)
+    public void DrawSnaps(DesignWidget MovingWidget, bool SizeSnapsOnly, bool ResizeMoveX, bool ResizeMoveY, bool NoRealSnapping = false)
     {
-        OverlayContainer.Sprites["snaps"].Bitmap?.Dispose();
-        OverlayContainer.Sprites["snaps"].Bitmap = new Bitmap(Size.Width - WidgetPadding * 2, Size.Height - WidgetPadding * 2);
+        if (!MovingWidget.MovingMultiple) OverlayContainer.Sprites["snaps"].Bitmap?.Dispose();
+        if (OverlayContainer.Sprites["snaps"].Bitmap == null || OverlayContainer.Sprites["snaps"].Bitmap.Disposed) OverlayContainer.Sprites["snaps"].Bitmap = new Bitmap(Size.Width - WidgetPadding * 2, Size.Height - WidgetPadding * 2);
         OverlayContainer.Sprites["snaps"].Bitmap.Unlock();
         List<DesignWidget> DesignWidgets = new List<DesignWidget>();
         Widgets.FindAll(w => w is DesignWidget).ForEach(w =>
@@ -180,25 +180,24 @@ public class DesignWindow : DesignWidget
         });
         foreach (DesignWidget other in DesignWidgets)
         {
-            if (other == MovingWidget || MovingWidget.ContainsChild(other)) continue;
-            FindSnaps(MovingWidget, MovingWidget, other, SizeSnapsOnly, ResizeMoveX, ResizeMoveY);
-            FindSnaps(MovingWidget, other, MovingWidget, SizeSnapsOnly, ResizeMoveX, ResizeMoveY);
+            if (other == MovingWidget || MovingWidget.ContainsChild(other) || other.Selected) continue;
+            FindSnaps(MovingWidget, MovingWidget, other, SizeSnapsOnly, ResizeMoveX, ResizeMoveY, NoRealSnapping);
+            FindSnaps(MovingWidget, other, MovingWidget, SizeSnapsOnly, ResizeMoveX, ResizeMoveY, NoRealSnapping);
         }
         OverlayContainer.Sprites["snaps"].Bitmap.Lock();
     }
 
-    private void FindSnaps(DesignWidget MovingWidget, DesignWidget w1, DesignWidget w2, bool SizeSnapsOnly, bool ResizeMoveX, bool ResizeMoveY)
+    private void FindSnaps(DesignWidget MovingWidget, DesignWidget w1, DesignWidget w2, bool SizeSnapsOnly, bool ResizeMoveX, bool ResizeMoveY, bool NoRealSnapping)
     {
         Rect r1 = new Rect(w1.LocalPosition, w1.Size);
         Rect r2 = new Rect(w2.LocalPosition, w2.Size);
-        if (w1 == MovingWidget) Console.WriteLine($"{r1.X}, {r2.X}");
         if (r1.X == r2.X)
         {
             int min = Math.Min(r1.Y + (r1.Height - HeightAdd) / 2, r2.Y + (r2.Height - HeightAdd) / 2);
             int max = Math.Max(r1.Y + (r1.Height - HeightAdd) / 2, r2.Y + (r2.Height - HeightAdd) / 2);
             int x = r1.X - 4;
             DrawSnap(x, min, x, max);
-            if (!(SizeSnapsOnly && !ResizeMoveX))
+            if (!NoRealSnapping && !(SizeSnapsOnly && !ResizeMoveX))
                 MovingWidget.SetHorizontallySnapped();
         }
         if (r1.X + r1.Width == r2.X + r2.Width || r1.X + r1.Width - WidthAdd + 6 == r2.X)
@@ -207,18 +206,18 @@ public class DesignWindow : DesignWidget
             int max = Math.Max(r1.Y + (r1.Height - HeightAdd) / 2, r2.Y + (r2.Height - HeightAdd) / 2);
             int x = r1.X + r1.Width - WidthAdd + 2;
             DrawSnap(x, min, x, max);
-            if (!(r1.X + r1.Width - WidthAdd + 6 == r2.X && SizeSnapsOnly && ResizeMoveX && w1 == MovingWidget ||
+            if (!NoRealSnapping && !(r1.X + r1.Width - WidthAdd + 6 == r2.X && SizeSnapsOnly && ResizeMoveX && w1 == MovingWidget ||
                 r1.X + r1.Width - WidthAdd + 6 == r2.X && SizeSnapsOnly && !ResizeMoveX && w2 == MovingWidget ||
                   r1.X + r1.Width == r2.X + r2.Width && SizeSnapsOnly && ResizeMoveX))
                 MovingWidget.SetHorizontallySnapped();
         }
-        if (r1.X + r1.Width / 2d == r2.X + r2.Width / 2d || r1.Width % 2 != r2.Width % 2 && r1.X + r1.Width / 2 == r2.X + r2.Width / 2)
+        if (r1.X + r1.Width / 2d == r2.X + r2.Width / 2d || r1.Width % 2 != r2.Width % 2 && r1.X + r1.Width / 2 == r2.X + r2.Width / 2 && Math.Abs(r1.X + r1.Width - (r2.X + r2.Width)) > 1)
         {
             int min = Math.Min(r1.Y + (r1.Height - HeightAdd) / 2, r2.Y + (r2.Height - HeightAdd) / 2);
             int max = Math.Max(r1.Y + (r1.Height - HeightAdd) / 2, r2.Y + (r2.Height - HeightAdd) / 2);
             int x = r1.X + (r1.Width - WidthAdd) / 2;
             DrawSnap(x, min, x, max);
-            MovingWidget.SetHorizontallySnapped();
+            if (!NoRealSnapping) MovingWidget.SetHorizontallySnapped();
         }
         if (r1.Y == r2.Y)
         {
@@ -226,7 +225,7 @@ public class DesignWindow : DesignWidget
             int max = Math.Max(r1.X + (r1.Width - WidthAdd) / 2, r2.X + (r2.Width - WidthAdd) / 2);
             int y = r1.Y - 4;
             DrawSnap(min, y, max, y);
-            if (!(SizeSnapsOnly && !ResizeMoveY))
+            if (!NoRealSnapping && !(SizeSnapsOnly && !ResizeMoveY))
                 MovingWidget.SetVerticallySnapped();
         }
         if (r1.Y + r1.Height == r2.Y + r2.Height || r1.Y + r1.Height - HeightAdd + 6 == r2.Y)
@@ -235,18 +234,18 @@ public class DesignWindow : DesignWidget
             int max = Math.Max(r1.X + (r1.Width - WidthAdd) / 2, r2.X + (r2.Width - WidthAdd) / 2);
             int y = r1.Y + r1.Height - HeightAdd + 2;
             DrawSnap(min, y, max, y);
-            if (!(r1.Y + r1.Height - HeightAdd + 6 == r2.Y && SizeSnapsOnly && ResizeMoveY && w1 == MovingWidget ||
+            if (!NoRealSnapping && !(r1.Y + r1.Height - HeightAdd + 6 == r2.Y && SizeSnapsOnly && ResizeMoveY && w1 == MovingWidget ||
                   r1.Y + r1.Height - HeightAdd + 6 == r2.Y && SizeSnapsOnly && !ResizeMoveY && w2 == MovingWidget ||
                   r1.Y + r1.Height == r2.Y + r2.Height && SizeSnapsOnly && ResizeMoveY))
                 MovingWidget.SetVerticallySnapped();
         }
-        if (r1.Y + r1.Height / 2d == r2.Y + r2.Height / 2d || r1.Height % 2 != r2.Height % 2 && r1.Y + r1.Height / 2 == r2.Y + r2.Height / 2)
+        if (r1.Y + r1.Height / 2d == r2.Y + r2.Height / 2d || r1.Height % 2 != r2.Height % 2 && r1.Y + r1.Height / 2 == r2.Y + r2.Height / 2 && Math.Abs(r1.Y + r1.Height - (r2.Y + r2.Height)) > 1)
         {
             int min = Math.Min(r1.X + (r1.Width - WidthAdd) / 2, r2.X + (r2.Width - WidthAdd) / 2);
             int max = Math.Max(r1.X + (r1.Width - WidthAdd) / 2, r2.X + (r2.Width - WidthAdd) / 2);
             int y = r1.Y + (r1.Height - HeightAdd) / 2;
             DrawSnap(min, y, max, y);
-            MovingWidget.SetVerticallySnapped();
+            if (!NoRealSnapping) MovingWidget.SetVerticallySnapped();
         }
     }
 

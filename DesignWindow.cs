@@ -99,6 +99,7 @@ public class DesignWindow : DesignWidget
             }
         }
         HoveringWidget = curr;
+        if (!Mouse.Inside && Program.DesignContainer.Mouse.Inside && !Mouse.LeftMousePressed) Input.SetCursor(CursorType.Arrow);
     }
 
     public void Center()

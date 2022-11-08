@@ -8,7 +8,7 @@ public class ParameterPanel : Widget
 {
 	public float HSeperatorX { get; protected set; } = 0.33f;
 
-    DesignWidget Widget;
+    public DesignWidget Widget { get; protected set; }
 	List<PropertyWidget> PropertyWidgets = new List<PropertyWidget>();
 
 	Container PropertyContainer;

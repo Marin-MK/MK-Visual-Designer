@@ -15,6 +15,7 @@ public class VDTextBox : Widget
     public int DefaultNumericValue => TextArea.DefaultNumericValue;
     public bool Enabled => TextArea.Enabled;
     public TextEvent OnTextChanged { get => TextArea.OnTextChanged; set => TextArea.OnTextChanged = value; }
+    public BaseEvent OnWidgetDeselected { get => TextArea.OnWidgetDeselected; set => TextArea.OnWidgetDeselected = value; }
 
 	public VDTextBox(IContainer Parent) : base(Parent)
 	{

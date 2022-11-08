@@ -22,7 +22,7 @@ public class DesignWidget : Widget
 
 	public bool Hovering = false;
 	public bool Pressing = false;
-	public bool LeftPressCounts = true;
+	public bool LeftPressCounts = false;
 	public bool WithinResizeRegion = false;
 	public bool WithinMoveRegion = false;
 	public bool Moving = false;
@@ -75,7 +75,15 @@ public class DesignWidget : Widget
 
 		this.Properties = new List<Property>()
 		{
-			new Property("Name", PropertyType.Text, () => Name, e => this.Name = (string) e),
+			new Property("Name", PropertyType.Text, () => Name, e => 
+			{
+				string OldName = Name;
+				this.Name = (string) e;
+				if (OldName != Name)
+				{
+					Undo.NameUndoAction.Register(this, OldName, Name);
+				}
+			}),
 
 			new Property("X", PropertyType.Numeric, () => Position.X, e =>
 			{
@@ -127,6 +135,7 @@ public class DesignWidget : Widget
 
 			new Property("Docking", PropertyType.Dropdown, () => HDocked ? VDocked ? 3 : 1 : VDocked ? 2 : 0, e =>
 			{
+				if (this is DesignLabel) return;
 				int idx = (int) e;
 				bool WasHDocked = HDocked;
 				bool WasVDocked = VDocked;
@@ -179,23 +188,43 @@ public class DesignWidget : Widget
 			new Property("Dock to Right", PropertyType.Boolean, () => RightDocked, e => 
 			{
 				if (HDocked) return;
+				bool OldRightDocked = RightDocked;
+				Point OldPosition = Position;
+				Padding OldPadding = Padding;
 				SetRightDocked((bool) e);
 				if (!RightDocked)
 				{
 					if (HDocked) SetPadding(Parent.Size.Width / 2 - Size.Width / 2, Padding.Up, Padding.Right, Padding.Down);
 					else SetPosition(Parent.Size.Width / 2 - Size.Width / 2, Position.Y);
 				}
+				if (RightDocked != OldRightDocked)
+				{
+					List<Undo.BaseUndoAction> Actions = new List<Undo.BaseUndoAction>();
+					if (!OldPosition.Equals(Position)) Actions.Add(Undo.PositionUndoAction.Create(this, OldPosition, Position));
+					else if (!OldPadding.Equals(Padding)) Actions.Add(Undo.PaddingUndoAction.Create(this, OldPadding, Padding));
+					Undo.DockingPositionUndoAction.Register(this, this.BottomDocked, OldRightDocked, this.BottomDocked, this.RightDocked, Actions);
+				}
 			}, null, () => !HDocked),
 
             new Property("Dock to Bottom", PropertyType.Boolean, () => BottomDocked, e =>
 			{
 				if (VDocked) return;
-				SetBottomDocked((bool) e);
+                bool OldBottomDocked = BottomDocked;
+                Point OldPosition = Position;
+                Padding OldPadding = Padding;
+                SetBottomDocked((bool) e);
 				if (!BottomDocked) 
 				{
 					if (VDocked) SetPadding(Padding.Left, Parent.Size.Height / 2 - Size.Height / 2, Padding.Right, Padding.Down);
 					else SetPosition(Position.X, Parent.Size.Height / 2 - Size.Height / 2);
 				}
+				if (BottomDocked != OldBottomDocked)
+				{
+                    List<Undo.BaseUndoAction> Actions = new List<Undo.BaseUndoAction>();
+                    if (!OldPosition.Equals(Position)) Actions.Add(Undo.PositionUndoAction.Create(this, OldPosition, Position));
+                    else if (!OldPadding.Equals(Padding)) Actions.Add(Undo.PaddingUndoAction.Create(this, OldPadding, Padding));
+					Undo.DockingPositionUndoAction.Register(this, OldBottomDocked, this.RightDocked, this.BottomDocked, this.RightDocked, Actions);
+                }
 			}, null, () => !VDocked),
 
 			new Property("Padding", PropertyType.Padding, () =>
@@ -203,8 +232,13 @@ public class DesignWidget : Widget
 				return new Padding(Padding.Left - WidgetPadding, Padding.Up - WidgetPadding, Padding.Right - WidgetPadding, Padding.Down - WidgetPadding);
 			}, e => {
 				MayRefresh = false;
+				Padding OldPadding = Padding;
 				Padding p = (Padding) e;
 				SetPadding(p.Left + WidgetPadding, p.Up + WidgetPadding, p.Right + WidgetPadding, p.Down + WidgetPadding);
+				if (!OldPadding.Equals(Padding))
+				{
+					Undo.PaddingUndoAction.Register(this, OldPadding, Padding);
+				}
 				MayRefresh = true;
 			})
 		};
@@ -619,6 +653,7 @@ public class DesignWidget : Widget
     public override void MouseMoving(MouseEventArgs e)
 	{
 		base.MouseMoving(e);
+		if (!LeftPressCounts && Mouse.LeftMousePressed) return;
 		WithinResizeRegion = false;
 		bool OldHover = Hovering;
 		Hovering = Program.DesignWindow.HoveringWidget == this;
@@ -872,7 +907,7 @@ public class DesignWidget : Widget
 				e.Handled = true;
 			}
 		}
-		else if (!Pressing && Program.DesignContainer.Mouse.Inside) Input.SetCursor(CursorType.Arrow);
+		else if (!Pressing && Program.DesignContainer.Mouse.Inside && LeftPressCounts) Input.SetCursor(CursorType.Arrow);
 	}
 
 	public override void LeftMouseUp(MouseEventArgs e)
@@ -920,9 +955,10 @@ public class DesignWidget : Widget
                 Sprites["window"].Visible = true;
                 Sprites["title"].Visible = true;
             }
-            Input.SetCursor(CursorType.Arrow);
+            if (Program.DesignContainer.Mouse.Inside) Input.SetCursor(CursorType.Arrow);
 			UpdateBox(true);
 			Program.DesignWindow.DisposeSnaps();
+			LeftPressCounts = false;
 		}
 	}
 

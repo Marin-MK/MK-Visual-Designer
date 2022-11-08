@@ -65,7 +65,7 @@ public class TextPropertyWidget : PropertyWidget
 	{
 		TextBox = new VDTextBox(this);
 		Refresh();
-		TextBox.OnTextChanged += _ =>
+		TextBox.OnWidgetDeselected += _ =>
 		{
 			if (!Available) return;
 			Property.OnSetValue(TextBox.Text);
@@ -78,8 +78,6 @@ public class TextPropertyWidget : PropertyWidget
 		if (!Available)
 		{
 			throw new NotImplementedException();
-			TextBox.SetText("Unavailable");
-			return;
 		}
 		object value = Property.GetValue();
         if (value is string) TextBox.SetText((string) value);
@@ -120,7 +118,7 @@ public class NumericPropertyWidget : PropertyWidget
 			}
 		}
 		Refresh();
-		TextBox.OnTextChanged += _ =>
+		TextBox.OnWidgetDeselected += _ =>
 		{
 			if (string.IsNullOrEmpty(TextBox.Text) || !Utilities.IsNumeric(TextBox.Text)) return;
 			int value = Convert.ToInt32(TextBox.Text);
@@ -170,10 +168,6 @@ public class DropdownPropertyWidget : PropertyWidget
 			Items.Add(new ListItem(s));
 		}
 		DropdownBox.SetItems(Items);
-		DropdownBox.OnDropDownClicked += _ =>
-		{
-
-		};
 		Refresh();
 		DropdownBox.OnSelectionChanged += _ =>
 		{
@@ -301,9 +295,9 @@ public class PaddingPropertyWidget : TextPropertyWidget
 {
 	public PaddingPropertyWidget(IContainer Parent, Property Property, float HSeparatorX) : base(Parent, Property, HSeparatorX)
 	{
-		TextBox.OnTextChanged.GetInvocationList().ToList().ForEach(d => TextBox.OnTextChanged -= (TextEvent) d);
+		TextBox.OnWidgetDeselected.GetInvocationList().ToList().ForEach(d => TextBox.OnWidgetDeselected -= (BaseEvent) d);
 		Refresh();
-		TextBox.OnTextChanged += _ =>
+		TextBox.OnWidgetDeselected += _ =>
 		{
 			Padding? padding = StringToPadding(TextBox.Text);
 			if (padding != null) Property.SetValue(padding);

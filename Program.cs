@@ -16,6 +16,8 @@ public class Program
     public static ParameterPanel ParameterPanel;
     public static List<Font> CustomFonts = new List<Font>();
     public static string CopyData;
+    public static List<Undo.BaseUndoAction> UndoList = new List<Undo.BaseUndoAction>();
+    public static List<Undo.BaseUndoAction> RedoList = new List<Undo.BaseUndoAction>();
 
     public static void Main(string[] Args)
     {
@@ -102,5 +104,24 @@ public class Program
     public static void CreateCaches()
     {
         DesignButton.CreateFadeCache();
+    }
+
+    public static void Undo(bool Internal = false)
+    {
+        if (UndoList.Count > 0 && !Input.TextInputActive())
+        {
+            UndoList[UndoList.Count - 1].RevertTo(false);
+        }
+    }
+
+    /// <summary>
+    /// Redoes the latest change that you undid.
+    /// </summary>
+    public static void Redo()
+    {
+        if (RedoList.Count > 0 && !Input.TextInputActive())
+        {
+            RedoList[RedoList.Count - 1].RevertTo(true);
+        }
     }
 }

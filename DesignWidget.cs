@@ -35,10 +35,10 @@ public class DesignWidget : Widget
 	public bool ChildrenHidden = false;
 	public bool MayRefresh = true;
 
-	protected Point MouseOrigin;
-	protected Point PositionOrigin;
-	protected Size SizeOrigin;
-	protected Padding PaddingOrigin;
+	public Point MouseOrigin;
+	public Point PositionOrigin;
+	public Size SizeOrigin;
+	public Padding PaddingOrigin;
 
 	protected bool HSnapped;
 	protected bool VSnapped;
@@ -53,12 +53,12 @@ public class DesignWidget : Widget
 
 	protected Container SelectionContainer;
 
-    public DesignWidget(IContainer Parent, string BaseName) : base(Parent)
+	public DesignWidget(IContainer Parent, string BaseName) : base(Parent)
 	{
 		this.Name = Program.DesignWindow?.GetName(BaseName);
 		Sprites["_bg"].X = WidgetPadding;
 		Sprites["_bg"].Y = WidgetPadding;
-        Sprites["box"] = new Sprite(this.Viewport);
+		Sprites["box"] = new Sprite(this.Viewport);
 		Sprites["box"].X = MousePadding;
 		Sprites["box"].Y = MousePadding;
 		Sprites["box"].Z = 10;
@@ -76,27 +76,53 @@ public class DesignWidget : Widget
 		{
 			new Property("Name", PropertyType.Text, () => Name, e => this.Name = (string) e),
 
-			new Property("X", PropertyType.Numeric, () => Position.X, e => SetPosition((int) e, Position.Y)),
+			new Property("X", PropertyType.Numeric, () => Position.X, e =>
+			{
+				Point OldPoint = this.Position;
+				SetPosition((int) e, Position.Y);
+				Point NewPoint = this.Position;
+				if (!Moving && !OldPoint.Equals(NewPoint)) Undo.PositionUndoAction.Register(this, OldPoint, NewPoint);
+			}),
 
-			new Property("Y", PropertyType.Numeric, () => Position.Y, e => SetPosition(Position.X, (int) e)),
+			new Property("Y", PropertyType.Numeric, () => Position.Y, e => 
+			{
+				Point OldPoint = this.Position;
+				SetPosition(Position.X, (int) e);
+				Point NewPoint = this.Position;
+				if (!Moving && !OldPoint.Equals(NewPoint)) Undo.PositionUndoAction.Register(this, OldPoint, NewPoint);
+			}),
 
-			new Property("Width", PropertyType.Numeric, () => Size.Width - WidgetPadding * 2, e => {
+			new Property("Width", PropertyType.Numeric, () => Size.Width - WidgetPadding * 2, e => 
+			{
+				Size OldSize = this.Size;
                 int w = (int) e + WidgetPadding * 2;
                 if (w < MinimumSize.Width) return;
 				SetWidth(w);
 				if (RightDocked) UpdatePositionAndSizeIfDocked();
 				if (this is DesignWindow) ((DesignWindow) this).Center();
+				Size NewSize = this.Size;
+				if (!Resizing && !OldSize.Equals(NewSize)) Undo.SizeUndoAction.Register(this, OldSize, NewSize);
 			}),
 
-			new Property("Height", PropertyType.Numeric, () => Size.Height - WidgetPadding * 2, e => {
+			new Property("Height", PropertyType.Numeric, () => Size.Height - WidgetPadding * 2, e => 
+			{
+				Size OldSize = this.Size;
 				int h = (int) e + WidgetPadding * 2;
 				if (h < MinimumSize.Height) return;
                 SetHeight(h);
                 if (BottomDocked) UpdatePositionAndSizeIfDocked();
                 if (this is DesignWindow) ((DesignWindow) this).Center();
+				Size NewSize = this.Size;
+				if (!Resizing && !OldSize.Equals(NewSize)) Undo.SizeUndoAction.Register(this, OldSize, NewSize);
 			}),
 
-			new Property("BG Color", PropertyType.Color, () => BackgroundColor, e => SetBackgroundColor((Color) e)),
+			new Property("BG Color", PropertyType.Color, () => BackgroundColor, e =>
+			{
+				Color OldColor = this.BackgroundColor;
+				SetBackgroundColor((Color) e);
+				Color NewColor = this.BackgroundColor;
+				if (!OldColor.Equals(NewColor)) Undo.BGColorUndoAction.Register(this, OldColor, NewColor);
+			}),
 
 			new Property("Docking", PropertyType.Dropdown, () => HDocked ? VDocked ? 3 : 1 : VDocked ? 2 : 0, e =>
 			{
@@ -258,8 +284,11 @@ public class DesignWidget : Widget
         });
 
 		OnContextMenuOpening += e => e.Value = Selected;
-		OnSizeChanged += _ => { if (MayRefresh) Program.ParameterPanel.Refresh(); };
-		OnPositionChanged += _ =>
+		OnSizeChanged += _ =>
+		{
+			if (MayRefresh) Program.ParameterPanel.Refresh();
+		};
+		OnPositionChanged += e =>
 		{
 			if (MayRefresh) Program.ParameterPanel.Refresh();
 			if (this is not DesignWindow)
@@ -559,9 +588,9 @@ public class DesignWidget : Widget
         SelectionContainer.Sprites["sel"].Bitmap?.Dispose();
     }
 
-	void SelectWidgetsInArea(Rect Area)
+	void SelectWidgetsInArea(Rect Area, bool AllowMultiple)
 	{
-		Program.DesignWindow.DeselectAll();
+		if (!AllowMultiple) Program.DesignWindow.DeselectAll();
 		for (int i = 0; i < Widgets.Count; i++)
 		{
 			if (Widgets[i] is not DesignWidget) continue;
@@ -758,7 +787,7 @@ public class DesignWidget : Widget
             int maxx = Math.Max(x1, x2);
             int maxy = Math.Max(y1, y2);
             Rect? SelectionBox = DrawSelectionBox(minx, miny, maxx - minx, maxy - miny);
-			if (SelectionBox != null) SelectWidgetsInArea(SelectionBox);
+			if (SelectionBox != null) SelectWidgetsInArea(SelectionBox, Input.Press(Keycode.SHIFT));
 			else Select(Input.Press(Keycode.SHIFT));
         }
         else if (Hovering)
@@ -839,9 +868,15 @@ public class DesignWidget : Widget
         {
             if (Resizing)
 			{
+				if (!Size.Equals(SizeOrigin)) Undo.SizeUndoAction.Register(this, this.SizeOrigin, this.Size);
+				if (!Padding.Equals(PaddingOrigin)) Undo.PaddingUndoAction.Register(this, this.PaddingOrigin, this.Padding);
 				Redraw();
 			}
-			Pressing = false;
+            if (Moving && !MovingMultiple && !Position.Equals(PositionOrigin))
+            {
+				Undo.PositionUndoAction.Register(this, this.PositionOrigin, this.Position);
+            }
+            Pressing = false;
 			MouseOrigin = null;
 			PositionOrigin = null;
 			SizeOrigin = null;

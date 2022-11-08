@@ -31,7 +31,10 @@ public class MainWindow : UIWindow
 		DesignWindow.SetSize(640 + DesignWidget.WidthAdd, 480 + DesignWidget.HeightAdd);
 		DesignWindow.SetTitle("Unnamed");
 		DesignWindow.Select(false);
-	}
+
+		UI.RegisterShortcut(new Shortcut(null, new Key(Keycode.Z, Keycode.CTRL), _ => Program.Undo(), true));
+        UI.RegisterShortcut(new Shortcut(null, new Key(Keycode.Y, Keycode.CTRL), _ => Program.Redo(), true));
+    }
 
 	public override void SizeChanged(BaseEventArgs e)
 	{

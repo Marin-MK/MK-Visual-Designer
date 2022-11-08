@@ -156,6 +156,24 @@ public class DesignWindow : DesignWidget
         if (!Mouse.Inside && !Program.ParameterPanel.Mouse.Inside) Program.DesignWindow.DeselectAll();
     }
 
+    public override void LeftMouseUp(MouseEventArgs e)
+    {
+        base.LeftMouseUp(e);
+        if (SelectedWidgets.Count > 1)
+        {
+            if (SelectedWidgets[0].Moving && SelectedWidgets[0].MovingMultiple)
+            {
+                List<Undo.PositionUndoAction> Actions = new List<Undo.PositionUndoAction>();
+                Program.DesignWindow.SelectedWidgets.ForEach(s =>
+                {
+                    Actions.Add(Undo.PositionUndoAction.Create(s, s.PositionOrigin, s.Position));
+                });
+                Actions[0].OtherActions.AddRange(Actions.GetRange(1, Actions.Count - 1));
+                Actions[0].Register();
+            }
+        }
+    }
+
     private void RedrawTitle()
     {
         Sprites["title"].Bitmap?.Dispose();

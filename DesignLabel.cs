@@ -26,7 +26,12 @@ public class DesignLabel : DesignWidget
 
 		this.Properties.AddRange(new List<Property>()
 		{
-			new Property("Text", PropertyType.Text, () => Text, e => SetText((string) e)),
+			new Property("Text", PropertyType.Text, () => Text, e =>
+			{
+				string OldText = Text;
+				SetText((string) e);
+				if (Text != OldText) Undo.GenericUndoAction<string>.Register(this, "SetText", OldText, Text);
+			}),
             new Property("Text Color", PropertyType.Color, () => TextColor, e => SetTextColor((Color) e)),
             new Property("Font", PropertyType.Font, () => Font, e => SetFont((Font) e)),
 			new Property("Width Limit", PropertyType.Numeric, () => WidthLimit, e => SetWidthLimit((int) e)),

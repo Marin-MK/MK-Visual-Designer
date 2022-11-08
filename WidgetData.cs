@@ -50,8 +50,17 @@ public class WidgetData
         byte gC = (byte) (long) ValueFromPath(Data, "bgcolor", "green");
         byte bC = (byte) (long) ValueFromPath(Data, "bgcolor", "blue");
         byte aC = (byte) (long) ValueFromPath(Data, "bgcolor", "alpha");
-        List<object> objList = (List<object>) Data["widgets"];
-        List<Dictionary<string, object>> WidgetData = objList.Select(o => (Dictionary<string, object>) o).ToList();
+        List<Dictionary<string, object>> WidgetData = null;
+        if (Data["widgets"] is List<object>)
+        {
+            List<object> objList = (List<object>) Data["widgets"];
+            WidgetData = objList.Select(o => (Dictionary<string, object>)o).ToList();
+        }
+        else if (Data["widgets"] is List<Dictionary<string, object>>)
+        {
+            WidgetData = (List<Dictionary<string, object>>) Data["widgets"];
+        }
+        else throw new Exception("Invalid widget list data");
         this.Widgets = WidgetData.Select(dict => Program.DictToData(dict)).ToList();
         this.BackgroundColor = new Color(rC, gC, bC, aC);
     }
@@ -103,13 +112,13 @@ public class WidgetData
         Dictionary<string, object> Dict = new Dictionary<string, object>();
         Dict.Add("type", this.Type);
         Dict.Add("name", Name);
-        Dict.Add("position", CreateDict(("x", Position.X), ("y", Position.Y)));
-        Dict.Add("size", CreateDict(("width", Size.Width), ("height", Size.Height)));
-        Dict.Add("padding", CreateDict(("left", Padding.Left), ("up", Padding.Up), ("right", Padding.Right), ("down", Padding.Down)));
+        Dict.Add("position", CreateDict(("x", (long) Position.X), ("y", (long) Position.Y)));
+        Dict.Add("size", CreateDict(("width", (long) Size.Width), ("height", (long) Size.Height)));
+        Dict.Add("padding", CreateDict(("left", (long) Padding.Left), ("up", (long) Padding.Up), ("right", (long) Padding.Right), ("down", (long) Padding.Down)));
         Dict.Add("bottomdocked", BottomDocked);
         Dict.Add("rightdocked", RightDocked);
-        Dict.Add("bgcolor", CreateDict(("red", BackgroundColor.Red), ("green", BackgroundColor.Green), ("blue", BackgroundColor.Blue), ("alpha", BackgroundColor.Alpha)));
-        Dict.Add("widgets", Widgets.Select(w => w.ConvertToDict()));
+        Dict.Add("bgcolor", CreateDict(("red", (long) BackgroundColor.Red), ("green", (long) BackgroundColor.Green), ("blue", (long) BackgroundColor.Blue), ("alpha", (long) BackgroundColor.Alpha)));
+        Dict.Add("widgets", Widgets.Select(w => w.ConvertToDict()).ToList());
         AddToDict(Dict);
         return Dict;
     }

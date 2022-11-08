@@ -15,7 +15,7 @@ public class Program
     public static DesignWindow DesignWindow;
     public static ParameterPanel ParameterPanel;
     public static List<Font> CustomFonts = new List<Font>();
-    public static string CopyData;
+    public static List<Dictionary<string, object>> CopyData;
     public static List<Undo.BaseUndoAction> UndoList = new List<Undo.BaseUndoAction>();
     public static List<Undo.BaseUndoAction> RedoList = new List<Undo.BaseUndoAction>();
 
@@ -51,6 +51,17 @@ public class Program
         return JSONData;
     }
 
+    public static List<Dictionary<string, object>> WidgetsToDict(List<DesignWidget> Widgets)
+    {
+        List<Dictionary<string, object>> RawData = new List<Dictionary<string, object>>();
+        Widgets.ForEach(w =>
+        {
+            WidgetData data = WidgetToData(w);
+            RawData.Add(data.ConvertToDict());
+        });
+        return RawData;
+    }
+
     public static List<DesignWidget> JSONToWidgets(DesignWidget Parent, string JSON)
     {
         object? o = JSONParser.JSONParser.FromString(JSON);
@@ -58,6 +69,17 @@ public class Program
         List<object> objList = (List<object>) o;
         List<Dictionary<string, object>> WidgetData = objList.Select(o => (Dictionary<string, object>) o).ToList();
         List<WidgetData> DataList = WidgetData.Select(dict => DictToData(dict)).ToList();
+        List<DesignWidget> Widgets = new List<DesignWidget>();
+        foreach (WidgetData wdgt in DataList)
+        {
+            Widgets.Add(WidgetFromData(Parent, wdgt));
+        }
+        return Widgets;
+    }
+
+    public static List<DesignWidget> DictToWidgets(DesignWidget Parent, List<Dictionary<string, object>> Data)
+    {
+        List<WidgetData> DataList = Data.Select(dict => DictToData(dict)).ToList();
         List<DesignWidget> Widgets = new List<DesignWidget>();
         foreach (WidgetData wdgt in DataList)
         {

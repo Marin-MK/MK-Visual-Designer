@@ -90,7 +90,7 @@ public class DesignWidget : Widget
 				Point OldPoint = this.Position;
 				SetPosition((int) e, Position.Y);
 				Point NewPoint = this.Position;
-				if (!Moving && !OldPoint.Equals(NewPoint)) Undo.PositionUndoAction.Register(this, OldPoint, NewPoint);
+				if (!Moving && !OldPoint.Equals(NewPoint)) Undo.GenericUndoAction<Point>.Register(this, "SetPosition", OldPoint, NewPoint);
 			}),
 
 			new Property("Y", PropertyType.Numeric, () => Position.Y, e => 
@@ -98,7 +98,7 @@ public class DesignWidget : Widget
 				Point OldPoint = this.Position;
 				SetPosition(Position.X, (int) e);
 				Point NewPoint = this.Position;
-				if (!Moving && !OldPoint.Equals(NewPoint)) Undo.PositionUndoAction.Register(this, OldPoint, NewPoint);
+				if (!Moving && !OldPoint.Equals(NewPoint)) Undo.GenericUndoAction<Point>.Register(this, "SetPosition", OldPoint, NewPoint);
 			}),
 
 			new Property("Width", PropertyType.Numeric, () => Size.Width - WidgetPadding * 2, e => 
@@ -110,7 +110,7 @@ public class DesignWidget : Widget
 				if (RightDocked) UpdatePositionAndSizeIfDocked();
 				if (this is DesignWindow) ((DesignWindow) this).Center();
 				Size NewSize = this.Size;
-				if (!Resizing && !OldSize.Equals(NewSize)) Undo.SizeUndoAction.Register(this, OldSize, NewSize);
+				if (!Resizing && !OldSize.Equals(NewSize)) Undo.GenericUndoAction<Size>.Register(this, "SetSize", OldSize, NewSize);
 			}),
 
 			new Property("Height", PropertyType.Numeric, () => Size.Height - WidgetPadding * 2, e => 
@@ -122,7 +122,7 @@ public class DesignWidget : Widget
                 if (BottomDocked) UpdatePositionAndSizeIfDocked();
                 if (this is DesignWindow) ((DesignWindow) this).Center();
 				Size NewSize = this.Size;
-				if (!Resizing && !OldSize.Equals(NewSize)) Undo.SizeUndoAction.Register(this, OldSize, NewSize);
+				if (!Resizing && !OldSize.Equals(NewSize)) Undo.GenericUndoAction<Size>.Register(this, "SetSize", OldSize, NewSize);
 			}),
 
 			new Property("BG Color", PropertyType.Color, () => BackgroundColor, e =>
@@ -130,7 +130,7 @@ public class DesignWidget : Widget
 				Color OldColor = this.BackgroundColor;
 				SetBackgroundColor((Color) e);
 				Color NewColor = this.BackgroundColor;
-				if (!OldColor.Equals(NewColor)) Undo.BGColorUndoAction.Register(this, OldColor, NewColor);
+				if (!OldColor.Equals(NewColor)) Undo.GenericUndoAction<Color>.Register(this, "SetBackgroundColor", OldColor, NewColor);
 			}),
 
 			new Property("Docking", PropertyType.Dropdown, () => HDocked ? VDocked ? 3 : 1 : VDocked ? 2 : 0, e =>
@@ -178,9 +178,9 @@ public class DesignWidget : Widget
 				if (WasHDocked != HDocked || WasVDocked != VDocked)
 				{
 					List<Undo.BaseUndoAction> Actions = new List<Undo.BaseUndoAction>();
-					if (!OldPosition.Equals(Position)) Actions.Add(Undo.PositionUndoAction.Create(this, OldPosition, this.Position));
-					if (!OldPadding.Equals(Padding)) Actions.Add(Undo.PaddingUndoAction.Create(this, OldPadding, this.Padding));
-					if (!OldSize.Equals(Size)) Actions.Add(Undo.SizeUndoAction.Create(this, OldSize, this.Size));
+					if (!OldPosition.Equals(Position)) Actions.Add(Undo.GenericUndoAction<Point>.Create(this, "SetPosition", OldPosition, this.Position));
+					if (!OldPadding.Equals(Padding)) Actions.Add(Undo.GenericUndoAction<Padding>.Create(this, "SetPadding", OldPadding, this.Padding));
+					if (!OldSize.Equals(Size)) Actions.Add(Undo.GenericUndoAction<Size>.Create(this, "SetSize", OldSize, this.Size));
 					Undo.DockingUndoAction.Register(this, WasHDocked, WasVDocked, HDocked, VDocked, Actions);
 				}
 			}, new List<string>() { "None", "Horizontal", "Vertical", "Full" }, () => this is not DesignLabel, "Unavailable"),
@@ -200,8 +200,8 @@ public class DesignWidget : Widget
 				if (RightDocked != OldRightDocked)
 				{
 					List<Undo.BaseUndoAction> Actions = new List<Undo.BaseUndoAction>();
-					if (!OldPosition.Equals(Position)) Actions.Add(Undo.PositionUndoAction.Create(this, OldPosition, Position));
-					else if (!OldPadding.Equals(Padding)) Actions.Add(Undo.PaddingUndoAction.Create(this, OldPadding, Padding));
+					if (!OldPosition.Equals(Position)) Actions.Add(Undo.GenericUndoAction<Point>.Create(this, "SetPosition", OldPosition, Position));
+					else if (!OldPadding.Equals(Padding)) Actions.Add(Undo.GenericUndoAction<Padding>.Create(this, "SetPadding", OldPadding, Padding));
 					Undo.DockingPositionUndoAction.Register(this, this.BottomDocked, OldRightDocked, this.BottomDocked, this.RightDocked, Actions);
 				}
 			}, null, () => !HDocked),
@@ -221,8 +221,8 @@ public class DesignWidget : Widget
 				if (BottomDocked != OldBottomDocked)
 				{
                     List<Undo.BaseUndoAction> Actions = new List<Undo.BaseUndoAction>();
-                    if (!OldPosition.Equals(Position)) Actions.Add(Undo.PositionUndoAction.Create(this, OldPosition, Position));
-                    else if (!OldPadding.Equals(Padding)) Actions.Add(Undo.PaddingUndoAction.Create(this, OldPadding, Padding));
+                    if (!OldPosition.Equals(Position)) Actions.Add(Undo.GenericUndoAction<Point>.Create(this, "SetPosition", OldPosition, Position));
+                    else if (!OldPadding.Equals(Padding)) Actions.Add(Undo.GenericUndoAction<Padding>.Create(this, "SetPadding", OldPadding, Padding));
 					Undo.DockingPositionUndoAction.Register(this, OldBottomDocked, this.RightDocked, this.BottomDocked, this.RightDocked, Actions);
                 }
 			}, null, () => !VDocked),
@@ -237,7 +237,7 @@ public class DesignWidget : Widget
 				SetPadding(p.Left + WidgetPadding, p.Up + WidgetPadding, p.Right + WidgetPadding, p.Down + WidgetPadding);
 				if (!OldPadding.Equals(Padding))
 				{
-					Undo.PaddingUndoAction.Register(this, OldPadding, Padding);
+					Undo.GenericUndoAction<Padding>.Register(this, "SetPadding", OldPadding, Padding);
 				}
 				MayRefresh = true;
 			})
@@ -359,8 +359,8 @@ public class DesignWidget : Widget
 	public void CopySelection(bool Delete = false)
 	{
 		if (this is DesignWindow) return;
-		string json = Program.WidgetsToJSON(Program.DesignWindow.SelectedWidgets);
-		Program.CopyData = json;
+		var data = Program.WidgetsToDict(Program.DesignWindow.SelectedWidgets);
+		Program.CopyData = data;
 	}
 
 	public void CutSelection()
@@ -372,9 +372,9 @@ public class DesignWidget : Widget
 
 	public void PasteSelection(bool AsChild)
 	{
-		if (string.IsNullOrEmpty(Program.CopyData)) return;
-		string json = Program.CopyData;
-		List<DesignWidget> Widgets = Program.JSONToWidgets(AsChild ? this : (DesignWidget) Parent, json);
+		if (Program.CopyData == null || Program.CopyData.Count == 0) return;
+		var data = Program.CopyData;
+		List<DesignWidget> Widgets = Program.DictToWidgets(AsChild ? this : (DesignWidget) Parent, data);
 		Program.DesignWindow.DeselectAll();
 		Widgets.ForEach(w => w.Select(true));
 	}
@@ -919,16 +919,16 @@ public class DesignWidget : Widget
 			{
 				if (!Padding.Equals(PaddingOrigin))
 				{
-					Undo.SizeUndoAction SizeAction = null;
-                    if (!Size.Equals(SizeOrigin)) SizeAction = Undo.SizeUndoAction.Create(this, this.SizeOrigin, this.Size);
-                    Undo.PaddingUndoAction.Register(this, this.PaddingOrigin, this.Padding, new List<Undo.BaseUndoAction>() { SizeAction });
+					Undo.GenericUndoAction<Size> SizeAction = null;
+                    if (!Size.Equals(SizeOrigin)) SizeAction = Undo.GenericUndoAction<Size>.Create(this, "SetSize", this.SizeOrigin, this.Size);
+                    Undo.GenericUndoAction<Padding>.Register(this, "SetPadding", this.PaddingOrigin, this.Padding, new List<Undo.BaseUndoAction>() { SizeAction });
 				}
-                else if (!Size.Equals(SizeOrigin)) Undo.SizeUndoAction.Register(this, this.SizeOrigin, this.Size);
+                else if (!Size.Equals(SizeOrigin)) Undo.GenericUndoAction<Size>.Register(this, "SetSize", this.SizeOrigin, this.Size);
 				Redraw();
 			}
             if (Moving && !MovingMultiple && !Position.Equals(PositionOrigin))
             {
-				Undo.PositionUndoAction.Register(this, this.PositionOrigin, this.Position);
+				Undo.GenericUndoAction<Point>.Register(this, "SetPosition", this.PositionOrigin, this.Position);
             }
             Pressing = false;
 			MouseOrigin = null;

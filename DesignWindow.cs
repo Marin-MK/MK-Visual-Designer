@@ -164,10 +164,10 @@ public class DesignWindow : DesignWidget
         {
             if (SelectedWidgets[0].Moving && SelectedWidgets[0].MovingMultiple)
             {
-                List<Undo.PositionUndoAction> Actions = new List<Undo.PositionUndoAction>();
+                List<Undo.GenericUndoAction<Point>> Actions = new List<Undo.GenericUndoAction<Point>>();
                 Program.DesignWindow.SelectedWidgets.ForEach(s =>
                 {
-                    Actions.Add(Undo.PositionUndoAction.Create(s, s.PositionOrigin, s.Position));
+                    Actions.Add(Undo.GenericUndoAction<Point>.Create(s, "SetPosition", s.PositionOrigin, s.Position));
                 });
                 Actions[0].OtherActions.AddRange(Actions.GetRange(1, Actions.Count - 1));
                 Actions[0].Register();

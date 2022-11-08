@@ -14,8 +14,9 @@ public class Property
     public Action<object> OnSetValue;
     public object? Parameters;
     public Func<bool>? IsAvailable;
+    public string UnavailableText;
 
-    public Property(string Name, PropertyType Type, Func<object> OnGetValue, Action<object> OnSetValue, object? Parameters = null, Func<bool>? IsAvailable = null)
+    public Property(string Name, PropertyType Type, Func<object> OnGetValue, Action<object> OnSetValue, object? Parameters = null, Func<bool>? IsAvailable = null, string UnavailableText = "")
 	{
 		this.Name = Name;
 		this.Type = Type;
@@ -23,6 +24,7 @@ public class Property
 		this.OnSetValue = OnSetValue;
         this.Parameters = Parameters;
         this.IsAvailable = IsAvailable;
+        this.UnavailableText = UnavailableText;
 	}
 
     public object GetValue()

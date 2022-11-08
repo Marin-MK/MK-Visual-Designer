@@ -15,6 +15,7 @@ public abstract class PropertyWidget : Widget
 	protected Label NameLabel;
 	protected Property Property;
 	protected float HSeparatorX;
+	protected bool Available = true;
 
 	public PropertyWidget(IContainer Parent, Property Property, float HSeparatorX) : base(Parent)
 	{
@@ -32,7 +33,8 @@ public abstract class PropertyWidget : Widget
 
 	public virtual void Refresh()
 	{
-		SetEnabled(Property.IsAvailable?.Invoke() ?? true);
+		Available = Property.IsAvailable?.Invoke() ?? true;
+        SetEnabled(Available);
 	}
 
 	public abstract void SetEnabled(bool Enabled);
@@ -63,12 +65,22 @@ public class TextPropertyWidget : PropertyWidget
 	{
 		TextBox = new VDTextBox(this);
 		Refresh();
-		TextBox.OnTextChanged += _ => Property.OnSetValue(TextBox.Text);
+		TextBox.OnTextChanged += _ =>
+		{
+			if (!Available) return;
+			Property.OnSetValue(TextBox.Text);
+		};
     }
 
 	public override void Refresh()
 	{
 		base.Refresh();
+		if (!Available)
+		{
+			throw new NotImplementedException();
+			TextBox.SetText("Unavailable");
+			return;
+		}
 		object value = Property.GetValue();
         if (value is string) TextBox.SetText((string) value);
 	}
@@ -121,6 +133,10 @@ public class NumericPropertyWidget : PropertyWidget
 	public override void Refresh()
 	{
 		base.Refresh();
+		if (!Available)
+		{
+			throw new NotImplementedException();
+		}
         TextBox.SetText(((int) Property.GetValue()).ToString());
     }
 
@@ -146,6 +162,7 @@ public class DropdownPropertyWidget : PropertyWidget
     {
 		DropdownBox = new VDDropdownBox(this);
 		DropdownBox.SetPosition(0, 4);
+		DropdownBox.SetShowDisabledText(true);
 		if (Property.Parameters is not List<string>) throw new Exception("Property must include a list of list items as parameters");
 		List<ListItem> Items = new List<ListItem>();
 		foreach (string s in (List<string>) Property.Parameters)
@@ -153,9 +170,14 @@ public class DropdownPropertyWidget : PropertyWidget
 			Items.Add(new ListItem(s));
 		}
 		DropdownBox.SetItems(Items);
+		DropdownBox.OnDropDownClicked += _ =>
+		{
+
+		};
 		Refresh();
 		DropdownBox.OnSelectionChanged += _ =>
 		{
+			if (!Available) return;
 			Property.OnSetValue(DropdownBox.SelectedIndex);
 		};
     }
@@ -163,6 +185,11 @@ public class DropdownPropertyWidget : PropertyWidget
 	public override void Refresh()
 	{
 		base.Refresh();
+		if (!Available)
+		{
+			DropdownBox.SetText("Unavailable");
+			return;
+		}
         DropdownBox.SetSelectedIndex((int) Property.GetValue());
     }
 
@@ -223,6 +250,10 @@ public class FontPropertyWidget : PropertyWidget
 	public override void Refresh()
 	{
 		base.Refresh();
+		if (!Available)
+		{
+			throw new NotImplementedException();
+		}
 		int idx = DropdownBox.Items.FindIndex(i => ((Font) i.Object).Equals((Font) Property.GetValue()));
 		if (idx > -1) DropdownBox.SetSelectedIndex(idx);
 		else
@@ -282,6 +313,10 @@ public class PaddingPropertyWidget : TextPropertyWidget
 	public override void Refresh()
 	{
 		base.Refresh();
+		if (!Available)
+		{
+			throw new NotImplementedException();
+		}
 		TextBox.SetText(PaddingToString((Padding) Property.GetValue()));
 	}
 
@@ -407,6 +442,10 @@ public class ColorPropertyWidget : PropertyWidget
     public override void Refresh()
     {
         base.Refresh();
+		if (!Available)
+		{
+			throw new NotImplementedException();
+		}
         DropdownBox.SetText(ColorToText((Color) Property.GetValue()));
     }
 

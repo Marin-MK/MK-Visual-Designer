@@ -13,7 +13,7 @@ public class BaseUndoAction
 
     protected DesignWidget Widget;
 
-    public BaseUndoAction(DesignWidget Widget, List<BaseUndoAction> OtherActions)
+    public BaseUndoAction(DesignWidget Widget, List<BaseUndoAction>? OtherActions)
     {
         this.Widget = Widget;
         this.OtherActions = OtherActions ?? new List<BaseUndoAction>();

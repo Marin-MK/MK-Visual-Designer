@@ -1,4 +1,5 @@
-﻿using System;
+﻿using RPGStudioMK.Undo;
+using System;
 using System.Collections.Generic;
 using System.Data.SqlTypes;
 using System.Linq;
@@ -129,6 +130,11 @@ public class DesignWidget : Widget
 				int idx = (int) e;
 				bool WasHDocked = HDocked;
 				bool WasVDocked = VDocked;
+				bool WasRightDocked = RightDocked;
+				bool WasBottomDocked = BottomDocked;
+				Point OldPosition = Position;
+				Padding OldPadding = Padding;
+				Size OldSize = Size;
 				MayRefresh = false;
 				SetHDocked(idx == 1 || idx == 3);
 				SetVDocked(idx == 2 || idx == 3);
@@ -160,7 +166,15 @@ public class DesignWidget : Widget
 				}
 				if (HDocked && RightDocked) SetRightDocked(false);
 				if (VDocked && BottomDocked) SetBottomDocked(false);
-			}, new List<string>() { "None", "Horizontal", "Vertical", "Full" }),
+				if (WasHDocked != HDocked || WasVDocked != VDocked)
+				{
+					List<Undo.BaseUndoAction> Actions = new List<Undo.BaseUndoAction>();
+					if (!OldPosition.Equals(Position)) Actions.Add(Undo.PositionUndoAction.Create(this, OldPosition, this.Position));
+					if (!OldPadding.Equals(Padding)) Actions.Add(Undo.PaddingUndoAction.Create(this, OldPadding, this.Padding));
+					if (!OldSize.Equals(Size)) Actions.Add(Undo.SizeUndoAction.Create(this, OldSize, this.Size));
+					Undo.DockingUndoAction.Register(this, WasHDocked, WasVDocked, HDocked, VDocked, Actions);
+				}
+			}, new List<string>() { "None", "Horizontal", "Vertical", "Full" }, () => this is not DesignLabel, "Unavailable"),
 
 			new Property("Dock to Right", PropertyType.Boolean, () => RightDocked, e => 
 			{
@@ -868,8 +882,13 @@ public class DesignWidget : Widget
         {
             if (Resizing)
 			{
-				if (!Size.Equals(SizeOrigin)) Undo.SizeUndoAction.Register(this, this.SizeOrigin, this.Size);
-				if (!Padding.Equals(PaddingOrigin)) Undo.PaddingUndoAction.Register(this, this.PaddingOrigin, this.Padding);
+				if (!Padding.Equals(PaddingOrigin))
+				{
+					Undo.SizeUndoAction SizeAction = null;
+                    if (!Size.Equals(SizeOrigin)) SizeAction = Undo.SizeUndoAction.Create(this, this.SizeOrigin, this.Size);
+                    Undo.PaddingUndoAction.Register(this, this.PaddingOrigin, this.Padding, new List<Undo.BaseUndoAction>() { SizeAction });
+				}
+                else if (!Size.Equals(SizeOrigin)) Undo.SizeUndoAction.Register(this, this.SizeOrigin, this.Size);
 				Redraw();
 			}
             if (Moving && !MovingMultiple && !Position.Equals(PositionOrigin))

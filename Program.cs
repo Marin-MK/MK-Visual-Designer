@@ -7,6 +7,7 @@ using System;
 using RPGStudioMK.Game;
 using System.Reflection;
 using System.Text;
+using System.Diagnostics;
 
 namespace VisualDesigner;
 
@@ -25,7 +26,7 @@ public class Program
     {
         string? ProjectFile = Args.Length > 0 ? Args[0] : null;
         if (ProjectFile != null) Path.GetFullPath(ProjectFile);
-        Directory.SetCurrentDirectory(Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName);
+        Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
         Config.Setup();
         Amethyst.Start(Config.PathInfo, false, true);
 
@@ -39,7 +40,7 @@ public class Program
         {
             OpenProject(ProjectFile);
         }
-        OpenProject("C:/Users/m3rei/Desktop/design.png");
+        //OpenProject("C:/Users/m3rei/Desktop/design.png");
 
         Graphics.Update();
         win.UI.Widgets.ForEach(e => e.UpdateBounds());
@@ -239,6 +240,7 @@ public class Program
             {
                 WidgetFromData(DesignWindow, data);
             });
+            DesignWindow.Center();
         }
         catch (Exception ex)
         {

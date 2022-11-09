@@ -22,6 +22,9 @@ public class Program
 
     public static void Main(string[] Args)
     {
+        string? ProjectFile = Args.Length > 0 ? Args[0] : null;
+        if (ProjectFile != null) Path.GetFullPath(ProjectFile);
+        Directory.SetCurrentDirectory(Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName);
         Config.Setup();
         Amethyst.Start(Config.PathInfo, false, true);
 
@@ -30,16 +33,34 @@ public class Program
         MainWindow win = new MainWindow();
         Utilities.Initialize(true);
         Program.MainWindow = win;
+
+        if (ProjectFile != null)
+        {
+            OpenProject(ProjectFile);
+        }
+        OpenProject("C:/Users/m3rei/Desktop/UnnamedWindow.mkui");
+
         Graphics.Update();
         win.UI.Widgets.ForEach(e => e.UpdateBounds());
         Graphics.Update(false, true);
         win.Show();
         Graphics.Update(false, true);
 
+        //PopupWindow pop = new PopupWindow();
+        //pop.SetSize(640, 480);
+        //pop.SetTitle("Unnamed");
+        //pop.Center();
+        //
+        //Button btn = new Button(pop);
+        //btn.SetPosition(0, 20);
+        //btn.SetText("OK");
+        //btn.SetContextMenuFont(Fonts.ParagraphBold);
+        //btn.SetSize(200, 100);
+
         Amethyst.Run();
     }
 
-    public static string WidgetsToJSON(List<DesignWidget> Widgets)
+    public static string WidgetsToJSON(List<DesignWidget> Widgets, bool Indented = false)
     {
         List<Dictionary<string, object>> RawData = new List<Dictionary<string, object>>();
         Widgets.ForEach(w =>
@@ -47,8 +68,14 @@ public class Program
             WidgetData data = WidgetToData(w);
             RawData.Add(data.ConvertToDict());
         });
-        string JSONData = JSONParser.JSONParser.ToString(RawData);
-        Console.WriteLine(JSONData);
+        string JSONData = JSONParser.JSONParser.ToString(RawData, Indented);
+        return JSONData;
+    }
+
+    public static string WidgetToJSON(DesignWidget Widget, bool Indented = false)
+    {
+        Dictionary<string, object> RawData = WidgetToData(Widget).ConvertToDict();
+        string JSONData = JSONParser.JSONParser.ToString(RawData, Indented);
         return JSONData;
     }
 
@@ -63,19 +90,11 @@ public class Program
         return RawData;
     }
 
-    public static List<DesignWidget> JSONToWidgets(DesignWidget Parent, string JSON)
+    public static WindowData JSONToData(string JSON)
     {
         object? o = JSONParser.JSONParser.FromString(JSON);
-        if (o is not List<object>) throw new Exception("Invalid JSON");
-        List<object> objList = (List<object>) o;
-        List<Dictionary<string, object>> WidgetData = objList.Select(o => (Dictionary<string, object>) o).ToList();
-        List<WidgetData> DataList = WidgetData.Select(dict => DictToData(dict)).ToList();
-        List<DesignWidget> Widgets = new List<DesignWidget>();
-        foreach (WidgetData wdgt in DataList)
-        {
-            Widgets.Add(WidgetFromData(Parent, wdgt));
-        }
-        return Widgets;
+        if (o is not Dictionary<string, object>) throw new Exception("Invalid JSON");
+        return (WindowData) DictToData((Dictionary<string, object>) o);
     }
 
     public static List<DesignWidget> DictToWidgets(DesignWidget Parent, List<Dictionary<string, object>> Data)
@@ -96,7 +115,8 @@ public class Program
         string Type = (string) Dict["type"];
         if (Type == "button") t = typeof(ButtonWidgetData);
         else if (Type == "label") t = typeof(LabelWidgetData);
-        else if (Type == "widget") t = typeof(WidgetData);
+        else if (Type == "container") t = typeof(WidgetData);
+        else if (Type == "window") t = typeof(WindowData);
         else throw new Exception($"Unknown data type '{Type}'.");
         dat = (WidgetData) Activator.CreateInstance(t, Dict);
         return dat;
@@ -106,7 +126,8 @@ public class Program
     {
         WidgetData dat = null;
         System.Type t = null;
-        if (Widget is DesignButton) t = typeof(ButtonWidgetData);
+        if (Widget is DesignWindow) t = typeof(WindowData);
+        else if (Widget is DesignButton) t = typeof(ButtonWidgetData);
         else if (Widget is DesignLabel) t = typeof(LabelWidgetData);
         else if (Widget.GetType() == typeof(DesignWidget)) t = typeof(WidgetData);
         else throw new Exception($"Unknown widget type '{Widget.GetType().Name}'.");
@@ -120,7 +141,7 @@ public class Program
         System.Type t = null;
         if (Data.Type == "button") t = typeof(DesignButton);
         else if (Data.Type == "label") t = typeof(DesignLabel);
-        else if (Data.Type == "widget") t = typeof(DesignWidget);
+        else if (Data.Type == "container") t = typeof(DesignWidget);
         else throw new Exception($"Unknown data type '{Data.Type}'.");
         if (t == typeof(DesignWidget)) w = (DesignWidget) Activator.CreateInstance(t, Parent, null);
         else w = (DesignWidget) Activator.CreateInstance(t, Parent);
@@ -150,5 +171,114 @@ public class Program
         {
             RedoList[RedoList.Count - 1].RevertTo(true);
         }
+    }
+
+    public static void NewProject()
+    {
+        EnsureSaved(() => ClearProject());
+    }
+
+    public static void ClearProject()
+    {
+        DesignWindow.DeselectAll();
+        int i = 0;
+        while (DesignWindow.Widgets.Count > i)
+        {
+            if (DesignWindow.Widgets[i] is DesignWidget) DesignWindow.Widgets[i].Dispose();
+            else i++;
+        }
+        DesignWindow.Name = "UnnamedWindow";
+        DesignWindow.SetSize(640 + DesignWidget.WidthAdd, 480 + DesignWidget.HeightAdd);
+        DesignWindow.SetFullscreen(false);
+        DesignWindow.SetIsPopup(true);
+    }
+
+    public static void OpenProject()
+    {
+        OpenFileDialog ofd = new OpenFileDialog();
+        ofd.SetTitle("Open Project File");
+        ofd.SetFilter(new FileFilter("MK UI Design", "mkui"));
+        string? Filename = ofd.ChooseFile();
+        if (!string.IsNullOrEmpty(Filename))
+        {
+            if (!File.Exists(Filename)) return;
+            EnsureSaved(() => OpenProject(Filename));
+        }
+    }
+
+    public static void OpenProject(string ProjectFile)
+    {
+        if (!File.Exists(ProjectFile))
+        {
+            MessageBox win = new MessageBox("Error", $"No file exists at the path '{ProjectFile}'.", new List<string>() { "New Project", "Quit" }, IconType.Error);
+            win.OnClosed += _ =>
+            {
+                if (win.Result == 1) Exit(false);
+            };
+            return;
+        }
+        StreamReader sr = new StreamReader(File.OpenRead(ProjectFile));
+        string json = sr.ReadToEnd();
+        sr.Close();
+        try
+        {
+            WindowData WindowData = JSONToData(json);
+            Graphics.Schedule(() =>
+            {
+                ClearProject();
+                DesignWindow.Name = WindowData.Name;
+                DesignWindow.SetTitle(WindowData.Title);
+                DesignWindow.SetSize(WindowData.Size);
+                DesignWindow.SetFullscreen(WindowData.Fullscreen);
+                DesignWindow.SetIsPopup(WindowData.IsPopup);
+                WindowData.Widgets.ForEach(data =>
+                {
+                    WidgetFromData(DesignWindow, data);
+                });
+            });
+        }
+        catch (Exception ex)
+        {
+            Graphics.Schedule(() =>
+            {
+                MessageBox win = new MessageBox("Error", $"Unknown error occurred.\n\n{ex}: {ex.Message}\n{ex.StackTrace}", ButtonType.OK, IconType.Error);
+                win.OnClosed += _ =>
+                {
+                    Exit(false);
+                };
+            });
+        }
+    }
+
+    public static async Task SaveProject()
+    {
+        string json = WidgetToJSON(DesignWindow, true);
+        Console.WriteLine(json);
+        OpenFileDialog ofd = new OpenFileDialog();
+        ofd.SetTitle("Save Project File");
+        ofd.SetFilter(new FileFilter("MK UI Design", "mkui"));
+        ofd.SetInitialDirectory(ofd.DefaultFolder + "/" + DesignWindow.Name);
+        string Filename = ofd.SaveFile();
+        if (!string.IsNullOrEmpty(Filename))
+        {
+            StreamWriter sw = new StreamWriter(File.OpenWrite(Filename));
+            await sw.WriteAsync(json);
+            sw.Close();
+        }
+    }
+
+    public static void EnsureSaved(Action Callback)
+    {
+        Callback();
+    }
+
+    public static void ExportAsPNG() { }
+
+    public static void ExportAsPseudoCode() { }
+
+    public static void Exit(bool PromptSave)
+    {
+        if (PromptSave) EnsureSaved(() => Amethyst.Stop());
+        else Amethyst.Stop();
     }
 }

@@ -58,7 +58,7 @@ public class DesignWidget : Widget
 
 	public DesignWidget(IContainer Parent, string? BaseName = null) : base(Parent)
 	{
-		if (!string.IsNullOrEmpty(BaseName)) this.Name = Program.DesignWindow?.GetName(BaseName);
+		if (!string.IsNullOrEmpty(BaseName)) this.Name = Program.DesignWindow?.GetName(BaseName) ?? BaseName ?? "Unknown";
 		Sprites["_bg"].X = WidgetPadding;
 		Sprites["_bg"].Y = WidgetPadding;
 		Sprites["box"] = new Sprite(this.Viewport);
@@ -66,11 +66,9 @@ public class DesignWidget : Widget
 		Sprites["box"].Y = MousePadding;
 		Sprites["box"].Z = 10;
 		MinimumSize = new Size(WidthAdd, HeightAdd);
-		SetPadding(WidgetPadding);
 
 		SelectionContainer = new Container(this);
 		SelectionContainer.SetDocked(true);
-		SelectionContainer.SetPadding(WidgetPadding);
 		SelectionContainer.Sprites["sel"] = new Sprite(SelectionContainer.Viewport);
 
 		OnWidgetSelected += WidgetSelected;
@@ -110,10 +108,10 @@ public class DesignWidget : Widget
 				if (!Moving && !OldPoint.Equals(NewPoint)) Undo.GenericUndoAction<Point>.Register(this, "SetPosition", OldPoint, NewPoint, true);
 			}),
 
-			new Property("Width", PropertyType.Numeric, () => Size.Width - WidgetPadding * 2, e => 
+			new Property("Width", PropertyType.Numeric, () => Size.Width - WidthAdd, e => 
 			{
 				Size OldSize = this.Size;
-                int w = (int) e + WidgetPadding * 2;
+                int w = (int) e + WidthAdd;
                 if (w < MinimumSize.Width) return;
 				SetWidth(w);
 				if (RightDocked) UpdatePositionAndSizeIfDocked();
@@ -122,10 +120,10 @@ public class DesignWidget : Widget
 				if (!Resizing && !OldSize.Equals(NewSize)) Undo.GenericUndoAction<Size>.Register(this, "SetSize", OldSize, NewSize, true);
 			}),
 
-			new Property("Height", PropertyType.Numeric, () => Size.Height - WidgetPadding * 2, e => 
+			new Property("Height", PropertyType.Numeric, () => Size.Height - HeightAdd, e => 
 			{
 				Size OldSize = this.Size;
-				int h = (int) e + WidgetPadding * 2;
+				int h = (int) e + HeightAdd;
 				if (h < MinimumSize.Height) return;
                 SetHeight(h);
                 if (BottomDocked) UpdatePositionAndSizeIfDocked();
@@ -175,25 +173,25 @@ public class DesignWidget : Widget
 				if (WasHDocked && !HDocked)
 				{
 					SetWidth(MinimumSize.Width * 4);
-					if (Padding.Left != WidgetPadding) SetPosition(Padding.Left - WidgetPadding, Position.Y);
+					if (Padding.Left != 0) SetPosition(Padding.Left, Position.Y);
 					else SetPosition(Math.Min(Parent.Size.Width - 20, 50), Position.Y);
-					SetPadding(WidgetPadding, Padding.Up, Padding.Right, Padding.Down);
+					SetPadding(0, Padding.Up, Padding.Right, Padding.Down);
 				}
 				if (WasVDocked && !VDocked)
 				{
 					SetHeight(MinimumSize.Height * 4);
-					if (oldpadu != WidgetPadding) SetPosition(Position.X, Padding.Up - WidgetPadding);
+					if (oldpadu != 0) SetPosition(Position.X, Padding.Up);
 					else SetPosition(Position.X, Math.Min(Parent.Size.Height - 20, 50));
-					SetPadding(Padding.Left, WidgetPadding, Padding.Right, WidgetPadding);
+					SetPadding(Padding.Left, 0, Padding.Right, 0);
 				}
 				if (!WasHDocked && HDocked)
 				{
-					SetPadding(Position.X + WidgetPadding, VDocked ? Padding.Up : WidgetPadding, WidgetPadding, WidgetPadding);
+					SetPadding(Position.X, VDocked ? Padding.Up : 0, 0, 0);
 					SetPosition(0, Position.Y);
 				}
 				if (!WasVDocked && VDocked)
 				{
-					SetPadding(HDocked ? Padding.Left : WidgetPadding, Position.Y + WidgetPadding, WidgetPadding, WidgetPadding);
+					SetPadding(HDocked ? Padding.Left : 0, Position.Y, 0, 0);
 					SetPosition(Position.X, 0);
 				}
 				if (WasHDocked != HDocked || WasVDocked != VDocked)
@@ -249,14 +247,11 @@ public class DesignWidget : Widget
                 }
 			}, null, () => !VDocked),
 
-			new Property("Padding", PropertyType.Padding, () =>
-			{
-				return new Padding(Padding.Left - WidgetPadding, Padding.Up - WidgetPadding, Padding.Right - WidgetPadding, Padding.Down - WidgetPadding);
-			}, e => {
+			new Property("Padding", PropertyType.Padding, () => Padding, e => {
 				MayRefresh = false;
 				Padding OldPadding = Padding;
 				Padding p = (Padding) e;
-				SetPadding(p.Left + WidgetPadding, p.Up + WidgetPadding, p.Right + WidgetPadding, p.Down + WidgetPadding);
+				SetPadding(p.Left, p.Up, p.Right, p.Down);
 				if (!OldPadding.Equals(Padding)) Undo.GenericUndoAction<Padding>.Register(this, "SetPadding", OldPadding, Padding, true);
 				MayRefresh = true;
 			})
@@ -314,6 +309,11 @@ public class DesignWidget : Widget
 			{
 				Shortcut = "Ctrl+D",
 				OnClicked = _ => DuplicateSelection()
+			},
+			new MenuItem("Surround with Container")
+			{
+				OnClicked = _ => SurroundWithContainer(),
+				IsClickable = e => e.Value = this is not DesignWindow
 			},
 			new MenuSeparator(),
 			new MenuItem("Delete")
@@ -431,6 +431,39 @@ public class DesignWidget : Widget
 		Undo.CreateDeleteUndoAction.Register(this, DesignParent.Name, WidgetData, true, true);
 	}
 
+	public void SurroundWithContainer()
+	{
+		if (this is DesignWindow || Program.DesignWindow.SelectedWidgets.Count == 0) return;
+		DesignWidget DesignParent = (DesignWidget) Program.DesignWindow.SelectedWidgets[0].Parent;
+		int minx = int.MaxValue;
+		int miny = int.MaxValue;
+		int maxwidth = int.MinValue;
+		int maxheight = int.MinValue;
+		for (int i = 0; i < Program.DesignWindow.SelectedWidgets.Count; i++)
+		{
+			DesignWidget w = Program.DesignWindow.SelectedWidgets[i];
+			int x = w.Position.X + w.Padding.Left;
+			int y = w.Position.Y + w.Padding.Up;
+			int width = w.Size.Width;
+			int height = w.Size.Height;
+			if (x < minx) minx = x;
+			if (y < miny) miny = y;
+			if (x + width > maxwidth) maxwidth = x + width;
+			if (y + height > maxheight) maxheight = y + height;
+		}
+		DesignWidget Container = new DesignWidget(DesignParent);
+		Container.SetPosition(minx, miny);
+		Container.SetSize(maxwidth, maxheight);
+		for (int i = 0; i < Program.DesignWindow.SelectedWidgets.Count; i++)
+		{
+			DesignWidget w = Program.DesignWindow.SelectedWidgets[i];
+			w.SetParent(Container);
+			w.SetPosition(Position.X - minx, Position.Y - miny);
+			w.SetZIndex(Container.ZIndex + 1);
+		}
+		Container.SetBackgroundColor(Color.RED);
+	}
+
 	public void Select(bool AllowMultiple)
 	{
 		if (!this.Selected)
@@ -472,7 +505,7 @@ public class DesignWidget : Widget
 		{
 			w = new DesignButton(Parent);
 			((DesignButton) w).SetText("Untitled Button");
-			w.SetSize(140 + WidgetPadding * 2, 33 + WidgetPadding * 2);
+			w.SetSize(140 + WidthAdd, 33 + HeightAdd);
 		}
 		else if (Type == "label")
 		{
@@ -890,10 +923,10 @@ public class DesignWidget : Widget
 		}
 		else if (CreatingSelection)
 		{
-            int x1 = MouseOrigin.X - Viewport.X - WidgetPadding;
-            int y1 = MouseOrigin.Y - Viewport.Y - WidgetPadding;
-            int x2 = e.X - Viewport.X - WidgetPadding;
-            int y2 = e.Y - Viewport.Y - WidgetPadding;
+            int x1 = MouseOrigin.X - Viewport.X;
+            int y1 = MouseOrigin.Y - Viewport.Y;
+            int x2 = e.X - Viewport.X;
+            int y2 = e.Y - Viewport.Y;
             int minx = Math.Min(x1, x2);
             int miny = Math.Min(y1, y2);
             int maxx = Math.Max(x1, x2);
@@ -1030,7 +1063,7 @@ public class DesignWidget : Widget
 	{
 		base.SizeChanged(e);
 		UpdateBox(true);
-        ((SolidBitmap) Sprites["_bg"].Bitmap).SetSize(Size.Width - WidgetPadding * 2, Size.Height - WidgetPadding * 2);
+        ((SolidBitmap) Sprites["_bg"].Bitmap).SetSize(Size.Width - WidthAdd, Size.Height - HeightAdd);
     }
 
 	void UpdateBox(bool Redraw)

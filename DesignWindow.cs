@@ -39,7 +39,6 @@ public class DesignWindow : DesignWidget
 
         OverlayContainer = new Container(this);
         OverlayContainer.SetDocked(true);
-        OverlayContainer.SetPadding(WidgetPadding);
         OverlayContainer.SetZIndex(10);
         OverlayContainer.Sprites["snaps"] = new Sprite(OverlayContainer.Viewport);
         MinimumSize.Width += WindowEdges * 2 + 2;
@@ -47,23 +46,8 @@ public class DesignWindow : DesignWidget
 
         OverlayContainer.Sprites["selection"] = new Sprite(OverlayContainer.Viewport);
 
-        DesignWidget wdgt = new DesignWidget(this, "UnnamedWidget");
-        wdgt.SetPosition(50, 50);
-        wdgt.SetSize(400, 400);
-        wdgt.SetBackgroundColor(new Color(32, 32, 32));
-
-        DesignButton button = new DesignButton(wdgt);
-        button.SetPosition(WidgetPadding + 60, WidgetPadding + 60);
-        button.SetSize(200 + WidthAdd, 100 + HeightAdd);
-        button.SetText("OK");
-
-        DesignLabel label = new DesignLabel(wdgt);
-        label.SetPosition(WidgetPadding + 80, WidgetPadding + 200);
-        label.SetText("This is a text label!");
-        label.SetFont(Fonts.Paragraph);
-
         // Remove the Name property
-        this.Properties.RemoveAll(p => p.Name == "Name" || p.Name == "X" || p.Name == "Y" || p.Name == "Docking" || p.Name == "Dock to Right" || p.Name == "Dock to Bottom" || p.Name == "Padding");
+        this.Properties.RemoveAll(p => p.Name == "X" || p.Name == "Y" || p.Name == "Docking" || p.Name == "Dock to Right" || p.Name == "Dock to Bottom" || p.Name == "Padding" || p.Name == "Auto-Resize" || p.Name == "BG Color");
         TitleProperty = new Property("Title", PropertyType.Text, () => Title, e =>
         {
             string OldTitle = this.Title;
@@ -231,7 +215,7 @@ public class DesignWindow : DesignWidget
     public override void LeftMouseDown(MouseEventArgs e)
     {
         base.LeftMouseDown(e);
-        if (!Mouse.Inside && !Program.ParameterPanel.Mouse.Inside) Program.DesignWindow.DeselectAll();
+        if (!Mouse.Inside && Program.DesignContainer.Mouse.Inside) Program.DesignWindow.DeselectAll();
     }
 
     public override void LeftMouseUp(MouseEventArgs e)
@@ -281,7 +265,7 @@ public class DesignWindow : DesignWidget
         }
         if (Snaps.Count > 0)
         {
-            if (OverlayContainer.Sprites["snaps"].Bitmap == null || OverlayContainer.Sprites["snaps"].Bitmap.Disposed) OverlayContainer.Sprites["snaps"].Bitmap = new Bitmap(Size.Width - WidgetPadding * 2, Size.Height - WidgetPadding * 2);
+            if (OverlayContainer.Sprites["snaps"].Bitmap == null || OverlayContainer.Sprites["snaps"].Bitmap.Disposed) OverlayContainer.Sprites["snaps"].Bitmap = new Bitmap(Size);
             OverlayContainer.Sprites["snaps"].Bitmap.Unlock();
             DrawSnaps(Snaps);
             OverlayContainer.Sprites["snaps"].Bitmap.Lock();
@@ -376,12 +360,12 @@ public class DesignWindow : DesignWidget
     {
         if (x1 < 0) x1 = 0;
         if (y1 < 0) y1 = 0;
-        if (x1 >= Size.Width - WidgetPadding * 2) x1 = Size.Width - WidgetPadding * 2 - 1;
-        if (y1 >= Size.Height - WidgetPadding * 2) y1 = Size.Height - WidgetPadding * 2 - 1;
+        if (x1 >= Size.Width) x1 = Size.Width - 1;
+        if (y1 >= Size.Height) y1 = Size.Height - 1;
         if (x2 < 0) x2 = 0;
         if (y2 < 0) y2 = 0;
-        if (x2 >= Size.Width - WidgetPadding * 2) x2 = Size.Width - WidgetPadding * 2 - 1;
-        if (y2 >= Size.Height - WidgetPadding * 2) y2 = Size.Height - WidgetPadding * 2 - 1;
+        if (x2 >= Size.Width) x2 = Size.Width - 1;
+        if (y2 >= Size.Height) y2 = Size.Height - 1;
 
         int minx = Math.Min(x1, x2);
         int miny = Math.Min(y1, y2);

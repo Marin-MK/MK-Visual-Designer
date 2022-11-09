@@ -19,11 +19,28 @@ public class MainWindow : UIWindow
 			new GridSize(366, Unit.Pixels),
 			new GridSize(1)
 		);
+		MainGrid.SetRows(
+			new GridSize(32, Unit.Pixels),
+			new GridSize(1, Unit.Pixels),
+			new GridSize(1)
+		);
+
+		MenuBar MainMenuBar = new MenuBar(MainGrid);
+		MainMenuBar.SetGridColumn(0, 1);
+		MainMenuBar.SetBackgroundColor(10, 23, 37);
+		MainMenuBar.SetItems(MenuBarItemProvider.GetItems());
+
+		Container Seperator = new Container(MainGrid);
+		Seperator.SetGridRow(1);
+		Seperator.SetGridColumn(0, 1);
+		Seperator.SetBackgroundColor(79, 108, 159);
 
 		ParameterPanel Panel = new ParameterPanel(MainGrid);
+		Panel.SetGridRow(2);
 		Program.ParameterPanel = Panel;
 
 		Container DesignContainer = new Container(MainGrid);
+		DesignContainer.SetGridRow(2);
 		DesignContainer.SetGridColumn(1);
 		Program.DesignContainer = DesignContainer;
 

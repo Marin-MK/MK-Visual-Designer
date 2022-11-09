@@ -7,7 +7,12 @@
     <Nullable>enable</Nullable>
     <Platforms>x64</Platforms>
     <Configurations>Debug</Configurations>
+    <ApplicationIcon>logo-64x64.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="logo-64x64.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\JSONParser\JSONParser.csproj" />

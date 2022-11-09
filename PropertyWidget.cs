@@ -257,13 +257,13 @@ public class FontPropertyWidget : PropertyWidget
 		{
 			throw new NotImplementedException();
 		}
-		int idx = DropdownBox.Items.FindIndex(i => ((Font) i.Object).Equals((Font) Property.GetValue()));
+		int idx = DropdownBox.Items.FindIndex(i => i.Object is Font && ((Font) i.Object).Equals((Font) Property.GetValue()));
 		if (idx > -1) DropdownBox.SetSelectedIndex(idx);
 		else
 		{
 			Program.CustomFonts.Add((Font) Property.GetValue());
 			SetAvailableFonts();
-            idx = DropdownBox.Items.FindIndex(i => ((Font)i.Object).Equals((Font) Property.GetValue()));
+            idx = DropdownBox.Items.FindIndex(i => i.Object is Font && ((Font) i.Object).Equals((Font) Property.GetValue()));
             DropdownBox.SetSelectedIndex(idx);
         }
 	}
@@ -332,29 +332,29 @@ public class PaddingPropertyWidget : TextPropertyWidget
 
 	Padding? StringToPadding(string Text)
 	{
-		Match m = Regex.Match(Text, @"^(\d+), *(\d+), *(\d+), *(\d+)$");
+		Match m = Regex.Match(Text, @"^(-)*(\d+), *(-)*(\d+), *(-)*(\d+), *(-)*(\d+)$");
 		if (m.Success)
 		{
 			return new Padding(
-				Convert.ToInt32(m.Groups[1].Value),
-				Convert.ToInt32(m.Groups[2].Value),
-				Convert.ToInt32(m.Groups[3].Value),
-				Convert.ToInt32(m.Groups[4].Value)
+				(m.Groups[1].Length > 0 ? -1 : 1) * Convert.ToInt32(m.Groups[2].Value),
+				(m.Groups[3].Length > 0 ? -1 : 1) * Convert.ToInt32(m.Groups[4].Value),
+				(m.Groups[5].Length > 0 ? -1 : 1) * Convert.ToInt32(m.Groups[6].Value),
+                (m.Groups[7].Length > 0 ? -1 : 1) * Convert.ToInt32(m.Groups[8].Value)
 			);
 		}
-		m = Regex.Match(Text, @"^(\d+), *(\d+)$");
+		m = Regex.Match(Text, @"^(-)*(\d+), *(-)*(\d+)$");
 		if (m.Success)
 		{
             return new Padding(
-                Convert.ToInt32(m.Groups[1].Value),
-                Convert.ToInt32(m.Groups[2].Value)
+                (m.Groups[1].Length > 0 ? -1 : 1) * Convert.ToInt32(m.Groups[2].Value),
+                (m.Groups[3].Length > 0 ? -1 : 1) * Convert.ToInt32(m.Groups[4].Value)
             );
         }
-        m = Regex.Match(Text, @"^(\d+)$");
+        m = Regex.Match(Text, @"^(-)*(\d+)$");
         if (m.Success)
         {
             return new Padding(
-                Convert.ToInt32(m.Groups[1].Value)
+                (m.Groups[1].Length > 0 ? -1 : 1) * Convert.ToInt32(m.Groups[2].Value)
             );
         }
 		return null;

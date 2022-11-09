@@ -8,7 +8,7 @@ namespace VisualDesigner;
 
 public class WidgetData
 {
-    public virtual string Type => "widget";
+    public virtual string Type => "container";
     public string Name;
     public Point Position;
     public Size Size;
@@ -33,12 +33,25 @@ public class WidgetData
     public WidgetData(Dictionary<string, object> Data)
     {
         this.Name = (string) Data["name"];
+        this.Size = new Size(0, 0);
+        this.Size.Width = (int)(long)ValueFromPath(Data, "size", "width");
+        this.Size.Height = (int)(long)ValueFromPath(Data, "size", "height");
+        List<Dictionary<string, object>> WidgetData = null;
+        if (Data["widgets"] is List<object>)
+        {
+            List<object> objList = (List<object>)Data["widgets"];
+            WidgetData = objList.Select(o => (Dictionary<string, object>)o).ToList();
+        }
+        else if (Data["widgets"] is List<Dictionary<string, object>>)
+        {
+            WidgetData = (List<Dictionary<string, object>>)Data["widgets"];
+        }
+        else throw new Exception("Invalid widget list data");
+        this.Widgets = WidgetData.Select(dict => Program.DictToData(dict)).ToList();
+        if (this is WindowData) return;
         this.Position = new Point(0, 0);
         this.Position.X = (int) (long) ValueFromPath(Data, "position", "x");
         this.Position.Y = (int) (long) ValueFromPath(Data, "position", "y");
-        this.Size = new Size(0, 0);
-        this.Size.Width = (int) (long) ValueFromPath(Data, "size", "width");
-        this.Size.Height = (int) (long) ValueFromPath(Data, "size", "height");
         int l = (int) (long) ValueFromPath(Data, "padding", "left");
         int u = (int) (long) ValueFromPath(Data, "padding", "up");
         int r = (int) (long) ValueFromPath(Data, "padding", "right");
@@ -51,18 +64,6 @@ public class WidgetData
         byte bC = (byte) (long) ValueFromPath(Data, "bgcolor", "blue");
         byte aC = (byte) (long) ValueFromPath(Data, "bgcolor", "alpha");
         this.BackgroundColor = new Color(rC, gC, bC, aC);
-        List<Dictionary<string, object>> WidgetData = null;
-        if (Data["widgets"] is List<object>)
-        {
-            List<object> objList = (List<object>) Data["widgets"];
-            WidgetData = objList.Select(o => (Dictionary<string, object>)o).ToList();
-        }
-        else if (Data["widgets"] is List<Dictionary<string, object>>)
-        {
-            WidgetData = (List<Dictionary<string, object>>) Data["widgets"];
-        }
-        else throw new Exception("Invalid widget list data");
-        this.Widgets = WidgetData.Select(dict => Program.DictToData(dict)).ToList();
     }
 
     protected object ValueFromPath(Dictionary<string, object> Dict, params string[] Path)
@@ -107,7 +108,7 @@ public class WidgetData
         });
     }
 
-    public Dictionary<string, object> ConvertToDict()
+    public virtual Dictionary<string, object> ConvertToDict()
     {
         Dictionary<string, object> Dict = new Dictionary<string, object>();
         Dict.Add("type", this.Type);
@@ -121,6 +122,51 @@ public class WidgetData
         Dict.Add("widgets", Widgets.Select(w => w.ConvertToDict()).ToList());
         AddToDict(Dict);
         return Dict;
+    }
+}
+
+public class WindowData : WidgetData
+{
+    public override string Type => "window";
+    public string Title;
+    public bool Fullscreen;
+    public bool IsPopup;
+
+    public WindowData(DesignWindow w) : base(w)
+    {
+        this.Title = w.Title;
+        this.Fullscreen = w.Fullscreen;
+        this.IsPopup = w.IsPopup;
+    }
+
+    public WindowData(Dictionary<string, object> Data) : base(Data)
+    {
+        this.Title = (string) Data["title"];
+        this.Fullscreen = (bool) Data["fullscreen"];
+        this.IsPopup = (bool) Data["popup"];
+    }
+
+    public override Dictionary<string, object> ConvertToDict()
+    {
+        Dictionary<string, object> Dict = new Dictionary<string, object>();
+        Dict.Add("type", this.Type);
+        Dict.Add("name", Name);
+        Dict.Add("size", CreateDict(("width", (long) Size.Width), ("height", (long) Size.Height)));
+        Dict.Add("widgets", Widgets.Select(w => w.ConvertToDict()).ToList());
+        AddToDict(Dict);
+        return Dict;
+    }
+
+    public override void AddToDict(Dictionary<string, object> Dict)
+    {
+        Dict.Add("title", this.Title);
+        Dict.Add("fullscreen", this.Fullscreen);
+        Dict.Add("popup", this.IsPopup);
+    }
+
+    public override void SetWidget(DesignWidget Widget)
+    {
+        throw new MethodNotSupportedException(Widget);
     }
 }
 
@@ -145,24 +191,24 @@ public class ButtonWidgetData : WidgetData
         this.Enabled = w.Enabled;
     }
 
-    public ButtonWidgetData(Dictionary<string, object> d) : base(d)
+    public ButtonWidgetData(Dictionary<string, object> Data) : base(Data)
     {
-        this.Text = (string) d["text"];
-        this.Font = Font.Get((string) ValueFromPath(d, "font", "name"), (int) (long) ValueFromPath(d, "font", "size"));
-        byte rC = (byte) (long) ValueFromPath(d, "textcolor", "red");
-        byte gC = (byte) (long) ValueFromPath(d, "textcolor", "green");
-        byte bC = (byte) (long) ValueFromPath(d, "textcolor", "blue");
-        byte aC = (byte) (long) ValueFromPath(d, "textcolor", "alpha");
+        this.Text = (string) Data["text"];
+        this.Font = Font.Get((string) ValueFromPath(Data, "font", "name"), (int) (long) ValueFromPath(Data, "font", "size"));
+        byte rC = (byte) (long) ValueFromPath(Data, "textcolor", "red");
+        byte gC = (byte) (long) ValueFromPath(Data, "textcolor", "green");
+        byte bC = (byte) (long) ValueFromPath(Data, "textcolor", "blue");
+        byte aC = (byte) (long) ValueFromPath(Data, "textcolor", "alpha");
         this.TextColor = new Color(rC, gC, bC, aC);
-        this.LeftAlign = (bool) d["leftalign"];
-        this.TextX = (int) (long) d["textx"];
-        this.Enabled = (bool) d["enabled"];
+        this.LeftAlign = (bool) Data["leftalign"];
+        this.TextX = (int) (long) Data["textx"];
+        this.Enabled = (bool) Data["enabled"];
     }
 
     public override void AddToDict(Dictionary<string, object> Dict)
     {
         Dict.Add("text", Text);
-        Dict.Add("font", CreateDict(("name", Font.Name), ("size", (long) Font.Size)));
+        Dict.Add("font", CreateDict(("name", Font.Name.Replace('\\', '/')), ("size", (long) Font.Size)));
         Dict.Add("textcolor", CreateDict(("red", (long) TextColor.Red), ("green", (long) TextColor.Green), ("blue", (long) TextColor.Blue), ("alpha", (long) TextColor.Alpha)));
         Dict.Add("leftalign", LeftAlign);
         Dict.Add("textx", (long) TextX);
@@ -202,32 +248,32 @@ public class LabelWidgetData : WidgetData
         this.DrawOptions = w.DrawOptions;
     }
 
-    public LabelWidgetData(Dictionary<string, object> d) : base(d)
+    public LabelWidgetData(Dictionary<string, object> Data) : base(Data)
     {
-        this.Text = (string) d["text"];
-        this.Font = Font.Get((string) ValueFromPath(d, "font", "name"), (int) (long) ValueFromPath(d, "font", "size"));
-        byte rC = (byte) (long) ValueFromPath(d, "textcolor", "red");
-        byte gC = (byte) (long) ValueFromPath(d, "textcolor", "green");
-        byte bC = (byte) (long) ValueFromPath(d, "textcolor", "blue");
-        byte aC = (byte) (long) ValueFromPath(d, "textcolor", "alpha");
+        this.Text = (string) Data["text"];
+        this.Font = Font.Get((string) ValueFromPath(Data, "font", "name"), (int) (long) ValueFromPath(Data, "font", "size"));
+        byte rC = (byte) (long) ValueFromPath(Data, "textcolor", "red");
+        byte gC = (byte) (long) ValueFromPath(Data, "textcolor", "green");
+        byte bC = (byte) (long) ValueFromPath(Data, "textcolor", "blue");
+        byte aC = (byte) (long) ValueFromPath(Data, "textcolor", "alpha");
         this.TextColor = new Color(rC, gC, bC, aC);
-        this.WidthLimit = (int) (long) d["widthlimit"];
-        this.LimitReplacementText = (string) d["limittext"];
+        this.WidthLimit = (int) (long) Data["widthlimit"];
+        this.LimitReplacementText = (string) Data["limittext"];
         DrawOptions ops = DrawOptions.LeftAlign;
-        if ((bool) ValueFromPath(d, "drawoptions", "bold")) ops |= DrawOptions.Bold;
-        if ((bool) ValueFromPath(d, "drawoptions", "italic")) ops |= DrawOptions.Italic;
-        if ((bool) ValueFromPath(d, "drawoptions", "underlined")) ops |= DrawOptions.Underlined;
-        if ((bool) ValueFromPath(d, "drawoptions", "strikethrough")) ops |= DrawOptions.Strikethrough;
-        if ((bool) ValueFromPath(d, "drawoptions", "leftalign")) ops |= DrawOptions.LeftAlign;
-        if ((bool) ValueFromPath(d, "drawoptions", "rightalign")) ops |= DrawOptions.RightAlign;
-        if ((bool) ValueFromPath(d, "drawoptions", "centeralign")) ops |= DrawOptions.CenterAlign;
+        if ((bool) ValueFromPath(Data, "drawoptions", "bold")) ops |= DrawOptions.Bold;
+        if ((bool) ValueFromPath(Data, "drawoptions", "italic")) ops |= DrawOptions.Italic;
+        if ((bool) ValueFromPath(Data, "drawoptions", "underlined")) ops |= DrawOptions.Underlined;
+        if ((bool) ValueFromPath(Data, "drawoptions", "strikethrough")) ops |= DrawOptions.Strikethrough;
+        if ((bool) ValueFromPath(Data, "drawoptions", "leftalign")) ops |= DrawOptions.LeftAlign;
+        if ((bool) ValueFromPath(Data, "drawoptions", "rightalign")) ops |= DrawOptions.RightAlign;
+        if ((bool) ValueFromPath(Data, "drawoptions", "centeralign")) ops |= DrawOptions.CenterAlign;
         this.DrawOptions = ops;
     }
 
     public override void AddToDict(Dictionary<string, object> Dict)
     {
         Dict.Add("text", Text);
-        Dict.Add("font", CreateDict(("name", Font.Name), ("size", (long) Font.Size)));
+        Dict.Add("font", CreateDict(("name", Font.Name.Replace('\\', '/')), ("size", (long) Font.Size)));
         Dict.Add("textcolor", CreateDict(("red", (long) TextColor.Red), ("green", (long) TextColor.Green), ("blue", (long) TextColor.Blue), ("alpha", (long) TextColor.Alpha)));
         Dict.Add("widthlimit", (long) WidthLimit);
         Dict.Add("limittext", LimitReplacementText);

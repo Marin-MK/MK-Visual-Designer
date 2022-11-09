@@ -13,11 +13,11 @@ public class DockingUndoAction : BaseUndoAction
     bool NewHDocked;
     bool NewVDocked;
 
-    public DockingUndoAction(DesignWidget Widget, List<BaseUndoAction>? OtherActions) : base(Widget, OtherActions) { }
+    public DockingUndoAction(DesignWidget Widget, bool RefreshParameters, List<BaseUndoAction>? OtherActions) : base(Widget, RefreshParameters, OtherActions) { }
 
-    public static DockingUndoAction Create(DesignWidget Widget, bool OldHDocked, bool OldVDocked, bool NewHDocked, bool NewVDocked, List<BaseUndoAction>? OtherActions = null)
+    public static DockingUndoAction Create(DesignWidget Widget, bool OldHDocked, bool OldVDocked, bool NewHDocked, bool NewVDocked, bool RefreshParameters, List<BaseUndoAction>? OtherActions = null)
     {
-        DockingUndoAction a = new DockingUndoAction(Widget, OtherActions);
+        DockingUndoAction a = new DockingUndoAction(Widget, RefreshParameters, OtherActions);
         a.OldHDocked = OldHDocked;
         a.OldVDocked = OldVDocked;
         a.NewHDocked = NewHDocked;
@@ -25,9 +25,9 @@ public class DockingUndoAction : BaseUndoAction
         return a;
     }
 
-    public static void Register(DesignWidget Widget, bool OldHDocked, bool OldVDocked, bool NewHDocked, bool NewVDocked, List<BaseUndoAction>? OtherActions = null)
+    public static void Register(DesignWidget Widget, bool OldHDocked, bool OldVDocked, bool NewHDocked, bool NewVDocked, bool RefreshParameters, List<BaseUndoAction>? OtherActions = null)
     {
-        DockingUndoAction a = Create(Widget, OldHDocked, OldVDocked, NewHDocked, NewVDocked, OtherActions);
+        DockingUndoAction a = Create(Widget, OldHDocked, OldVDocked, NewHDocked, NewVDocked, RefreshParameters, OtherActions);
         a.Register();
     }
 

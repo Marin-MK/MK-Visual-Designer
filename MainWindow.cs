@@ -44,6 +44,6 @@ public class MainWindow : UIWindow
 
 	public void CenterDesignWindow()
 	{
-        DesignWindow.SetPosition(DesignWindow.Parent.Size.Width / 2 - DesignWindow.Size.Width / 2, DesignWindow.Parent.Size.Height / 2 - DesignWindow.Size.Height / 2);
+        if (!DesignWindow.Fullscreen) DesignWindow.SetPosition(DesignWindow.Parent.Size.Width / 2 - DesignWindow.Size.Width / 2, DesignWindow.Parent.Size.Height / 2 - DesignWindow.Size.Height / 2);
     }
 }

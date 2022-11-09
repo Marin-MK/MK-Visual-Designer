@@ -10,10 +10,13 @@ namespace VisualDesigner;
 public class DesignWindow : DesignWidget
 {
     public string Title { get; protected set; } = "Unnamed Window";
+    public bool Fullscreen { get; protected set; } = false;
+    public bool IsPopup { get; protected set; } = true;
 
     public DesignWidget HoveringWidget;
     public List<DesignWidget> SelectedWidgets = new List<DesignWidget>();
 
+    Property TitleProperty;
     Container OverlayContainer;
     int WindowEdges = 7;
 
@@ -21,6 +24,8 @@ public class DesignWindow : DesignWidget
 	{
         Program.CreateCaches();
         Program.DesignWindow = this;
+
+        SetPadding(0);
 
         Sprites["shadow"] = new Sprite(this.Viewport);
         Sprites["shadow"].X = WidgetPadding;
@@ -59,9 +64,12 @@ public class DesignWindow : DesignWidget
 
         // Remove the Name property
         this.Properties.RemoveAll(p => p.Name == "Name" || p.Name == "X" || p.Name == "Y" || p.Name == "Docking" || p.Name == "Dock to Right" || p.Name == "Dock to Bottom" || p.Name == "Padding");
+        TitleProperty = new Property("Title", PropertyType.Text, () => Title, e => SetTitle((string) e));
         this.Properties.AddRange(new List<Property>()
         {
-            new Property("Title", PropertyType.Text, () => Title, e => SetTitle((string) e))
+            TitleProperty,
+            new Property("Fullscreen", PropertyType.Boolean, () => this.Fullscreen, e => SetFullscreen((bool) e)),
+            new Property("Is Popup", PropertyType.Boolean, () => this.IsPopup, e => SetIsPopup((bool) e))
         });
     }
 
@@ -71,6 +79,69 @@ public class DesignWindow : DesignWidget
         {
             this.Title = Title;
             RedrawTitle();
+        }
+    }
+
+    public void SetFullscreen(bool Fullscreen)
+    {
+        if (this.Fullscreen != Fullscreen)
+        {
+            this.Fullscreen = Fullscreen;
+            if (this.Fullscreen)
+            {
+                Point OldPosition = this.Position;
+                Size OldSize = this.Size;
+                this.SetDocked(true);
+                this.SetPosition(0, 0);
+                List<Undo.BaseUndoAction> Actions = new List<Undo.BaseUndoAction>()
+                {
+                    Undo.DockingUndoAction.Create(this, false, false, true, true, false),
+                    Undo.GenericUndoAction<Point>.Create(this, "SetPosition", OldPosition, this.Position, false),
+                    Undo.GenericUndoAction<Size>.Create(this, "SetSize", OldSize, this.Size, false)
+                };
+                Undo.CallbackUndoAction.Register(this, IsRedo =>
+                {
+                    this.Fullscreen = IsRedo;
+                }, true, Actions);
+            }
+            else
+            {
+                Point OldPosition = this.Position;
+                Size OldSize = this.Size;
+                this.SetDocked(false);
+                this.SetSize(640 + WidthAdd, 480 + HeightAdd);
+                Center();
+                List<Undo.BaseUndoAction> Actions = new List<Undo.BaseUndoAction>()
+                {
+                    Undo.DockingUndoAction.Create(this, true, true, false, false, false),
+                    Undo.GenericUndoAction<Point>.Create(this, "SetPosition", OldPosition, this.Position, false),
+                    Undo.GenericUndoAction<Size>.Create(this, "SetSize", OldSize, this.Size, false)
+                };
+                Undo.CallbackUndoAction.Register(this, IsRedo =>
+                {
+                    this.Fullscreen = !IsRedo;
+                }, true, Actions);
+            }
+        }
+    }
+
+    public void SetIsPopup(bool IsPopup)
+    {
+        if (this.IsPopup != IsPopup)
+        {
+            this.IsPopup = IsPopup;
+            if (this.IsPopup && !Properties.Contains(TitleProperty))
+            {
+                int Index = Properties.FindIndex(p => p == null);
+                Properties[Index] = TitleProperty;
+            }
+            else if (!this.IsPopup && Properties.Contains(TitleProperty))
+            {
+                int Index = Properties.IndexOf(TitleProperty);
+                Properties[Index] = null;
+            }
+            Program.ParameterPanel.Redraw();
+            Redraw();
         }
     }
 
@@ -167,7 +238,7 @@ public class DesignWindow : DesignWidget
                 List<Undo.GenericUndoAction<Point>> Actions = new List<Undo.GenericUndoAction<Point>>();
                 Program.DesignWindow.SelectedWidgets.ForEach(s =>
                 {
-                    Actions.Add(Undo.GenericUndoAction<Point>.Create(s, "SetPosition", s.PositionOrigin, s.Position));
+                    Actions.Add(Undo.GenericUndoAction<Point>.Create(s, "SetPosition", s.PositionOrigin, s.Position, false));
                 });
                 Actions[0].OtherActions.AddRange(Actions.GetRange(1, Actions.Count - 1));
                 Actions[0].Register();
@@ -189,8 +260,7 @@ public class DesignWindow : DesignWidget
     public void DrawSnaps(DesignWidget MovingWidget, bool SizeSnapsOnly, bool ResizeMoveX, bool ResizeMoveY, bool NoRealSnapping = false)
     {
         if (!MovingWidget.MovingMultiple) OverlayContainer.Sprites["snaps"].Bitmap?.Dispose();
-        if (OverlayContainer.Sprites["snaps"].Bitmap == null || OverlayContainer.Sprites["snaps"].Bitmap.Disposed) OverlayContainer.Sprites["snaps"].Bitmap = new Bitmap(Size.Width - WidgetPadding * 2, Size.Height - WidgetPadding * 2);
-        OverlayContainer.Sprites["snaps"].Bitmap.Unlock();
+        List<Rect> Snaps = new List<Rect>();
         List<DesignWidget> DesignWidgets = new List<DesignWidget>();
         Widgets.FindAll(w => w is DesignWidget).ForEach(w =>
         {
@@ -200,14 +270,41 @@ public class DesignWindow : DesignWidget
         foreach (DesignWidget other in DesignWidgets)
         {
             if (other == MovingWidget || MovingWidget.ContainsChild(other) || other.Selected) continue;
-            FindSnaps(MovingWidget, MovingWidget, other, SizeSnapsOnly, ResizeMoveX, ResizeMoveY, NoRealSnapping);
-            FindSnaps(MovingWidget, other, MovingWidget, SizeSnapsOnly, ResizeMoveX, ResizeMoveY, NoRealSnapping);
+            Snaps.AddRange(FindSnaps(MovingWidget, MovingWidget, other, SizeSnapsOnly, ResizeMoveX, ResizeMoveY, NoRealSnapping));
+            Snaps.AddRange(FindSnaps(MovingWidget, other, MovingWidget, SizeSnapsOnly, ResizeMoveX, ResizeMoveY, NoRealSnapping));
         }
-        OverlayContainer.Sprites["snaps"].Bitmap.Lock();
+        if (Snaps.Count > 0)
+        {
+            if (OverlayContainer.Sprites["snaps"].Bitmap == null || OverlayContainer.Sprites["snaps"].Bitmap.Disposed) OverlayContainer.Sprites["snaps"].Bitmap = new Bitmap(Size.Width - WidgetPadding * 2, Size.Height - WidgetPadding * 2);
+            OverlayContainer.Sprites["snaps"].Bitmap.Unlock();
+            DrawSnaps(Snaps);
+            OverlayContainer.Sprites["snaps"].Bitmap.Lock();
+        }
     }
 
-    private void FindSnaps(DesignWidget MovingWidget, DesignWidget w1, DesignWidget w2, bool SizeSnapsOnly, bool ResizeMoveX, bool ResizeMoveY, bool NoRealSnapping)
+    private void DrawSnaps(List<Rect> Snaps)
     {
+        foreach (Rect Snap in Snaps)
+        {
+            int minx = Snap.X;
+            int miny = Snap.Y;
+            int maxx = Snap.Width;
+            int maxy = Snap.Height;
+            bool xeql = minx == maxx;
+
+            for (int e = xeql ? miny : minx; e < (xeql ? maxy : maxx); e++)
+            {
+                int x = xeql ? minx : e;
+                int y = xeql ? e : miny;
+                int rem = e - (xeql ? miny : minx);
+                if ((rem / 6) % 2 == 0) OverlayContainer.Sprites["snaps"].Bitmap.SetPixel(x, y, Color.GREEN);
+            }
+        }
+    }
+
+    private List<Rect> FindSnaps(DesignWidget MovingWidget, DesignWidget w1, DesignWidget w2, bool SizeSnapsOnly, bool ResizeMoveX, bool ResizeMoveY, bool NoRealSnapping)
+    {
+        List<Rect> Snaps = new List<Rect>();
         Rect r1 = new Rect(w1.LocalPosition, w1.Size);
         Rect r2 = new Rect(w2.LocalPosition, w2.Size);
         if (r1.X == r2.X)
@@ -215,7 +312,7 @@ public class DesignWindow : DesignWidget
             int min = Math.Min(r1.Y + (r1.Height - HeightAdd) / 2, r2.Y + (r2.Height - HeightAdd) / 2);
             int max = Math.Max(r1.Y + (r1.Height - HeightAdd) / 2, r2.Y + (r2.Height - HeightAdd) / 2);
             int x = r1.X - 4;
-            DrawSnap(x, min, x, max);
+            Snaps.Add(DrawSnap(x, min, x, max));
             if (!NoRealSnapping && !(SizeSnapsOnly && !ResizeMoveX))
                 MovingWidget.SetHorizontallySnapped();
         }
@@ -224,7 +321,7 @@ public class DesignWindow : DesignWidget
             int min = Math.Min(r1.Y + (r1.Height - HeightAdd) / 2, r2.Y + (r2.Height - HeightAdd) / 2);
             int max = Math.Max(r1.Y + (r1.Height - HeightAdd) / 2, r2.Y + (r2.Height - HeightAdd) / 2);
             int x = r1.X + r1.Width - WidthAdd + 2;
-            DrawSnap(x, min, x, max);
+            Snaps.Add(DrawSnap(x, min, x, max));
             if (!NoRealSnapping && !(r1.X + r1.Width - WidthAdd + 6 == r2.X && SizeSnapsOnly && ResizeMoveX && w1 == MovingWidget ||
                 r1.X + r1.Width - WidthAdd + 6 == r2.X && SizeSnapsOnly && !ResizeMoveX && w2 == MovingWidget ||
                   r1.X + r1.Width == r2.X + r2.Width && SizeSnapsOnly && ResizeMoveX))
@@ -235,7 +332,7 @@ public class DesignWindow : DesignWidget
             int min = Math.Min(r1.Y + (r1.Height - HeightAdd) / 2, r2.Y + (r2.Height - HeightAdd) / 2);
             int max = Math.Max(r1.Y + (r1.Height - HeightAdd) / 2, r2.Y + (r2.Height - HeightAdd) / 2);
             int x = r1.X + (r1.Width - WidthAdd) / 2;
-            DrawSnap(x, min, x, max);
+            Snaps.Add(DrawSnap(x, min, x, max));
             if (!NoRealSnapping) MovingWidget.SetHorizontallySnapped();
         }
         if (r1.Y == r2.Y)
@@ -243,7 +340,7 @@ public class DesignWindow : DesignWidget
             int min = Math.Min(r1.X + (r1.Width - WidthAdd) / 2, r2.X + (r2.Width - WidthAdd) / 2);
             int max = Math.Max(r1.X + (r1.Width - WidthAdd) / 2, r2.X + (r2.Width - WidthAdd) / 2);
             int y = r1.Y - 4;
-            DrawSnap(min, y, max, y);
+            Snaps.Add(DrawSnap(min, y, max, y));
             if (!NoRealSnapping && !(SizeSnapsOnly && !ResizeMoveY))
                 MovingWidget.SetVerticallySnapped();
         }
@@ -252,7 +349,7 @@ public class DesignWindow : DesignWidget
             int min = Math.Min(r1.X + (r1.Width - WidthAdd) / 2, r2.X + (r2.Width - WidthAdd) / 2);
             int max = Math.Max(r1.X + (r1.Width - WidthAdd) / 2, r2.X + (r2.Width - WidthAdd) / 2);
             int y = r1.Y + r1.Height - HeightAdd + 2;
-            DrawSnap(min, y, max, y);
+            Snaps.Add(DrawSnap(min, y, max, y));
             if (!NoRealSnapping && !(r1.Y + r1.Height - HeightAdd + 6 == r2.Y && SizeSnapsOnly && ResizeMoveY && w1 == MovingWidget ||
                   r1.Y + r1.Height - HeightAdd + 6 == r2.Y && SizeSnapsOnly && !ResizeMoveY && w2 == MovingWidget ||
                   r1.Y + r1.Height == r2.Y + r2.Height && SizeSnapsOnly && ResizeMoveY))
@@ -263,12 +360,13 @@ public class DesignWindow : DesignWidget
             int min = Math.Min(r1.X + (r1.Width - WidthAdd) / 2, r2.X + (r2.Width - WidthAdd) / 2);
             int max = Math.Max(r1.X + (r1.Width - WidthAdd) / 2, r2.X + (r2.Width - WidthAdd) / 2);
             int y = r1.Y + (r1.Height - HeightAdd) / 2;
-            DrawSnap(min, y, max, y);
+            Snaps.Add(DrawSnap(min, y, max, y));
             if (!NoRealSnapping) MovingWidget.SetVerticallySnapped();
         }
+        return Snaps;
     }
 
-    private void DrawSnap(int x1, int y1, int x2, int y2)
+    private Rect DrawSnap(int x1, int y1, int x2, int y2)
     {
         if (x1 < 0) x1 = 0;
         if (y1 < 0) y1 = 0;
@@ -283,15 +381,8 @@ public class DesignWindow : DesignWidget
         int miny = Math.Min(y1, y2);
         int maxx = Math.Max(x1, x2);
         int maxy = Math.Max(y1, y2);
-        bool xeql = minx == maxx;
 
-        for (int e = xeql ? miny : minx; e < (xeql ? maxy : maxx);  e++)
-        {
-            int x = xeql ? minx : e;
-            int y = xeql ? e : miny;
-            int rem = e - (xeql ? miny : minx);
-            if ((rem / 6) % 2 == 0) OverlayContainer.Sprites["snaps"].Bitmap.SetPixel(x, y, Color.GREEN);
-        }
+        return new Rect(minx, miny, maxx, maxy);
     }
 
     public void DisposeSnaps()
@@ -299,17 +390,39 @@ public class DesignWindow : DesignWidget
         OverlayContainer.Sprites["snaps"].Bitmap?.Dispose();
     }
 
-	protected override void Draw()
+    public override void Redraw()
+    {
+        base.Redraw();
+    }
+
+    protected override void Draw()
 	{
 		base.Draw();
         Sprites["window"].Bitmap?.Dispose();
+        Sprites["shadow"].Bitmap?.Dispose();
+
+        Sprites["title"].Visible = IsPopup;
+
+        if (!this.IsPopup)
+        {
+            Sprites["window"].Bitmap = new Bitmap(Size.Width - WidgetPadding * 2, Size.Height - WidgetPadding * 2);
+            Sprites["window"].Bitmap.Unlock();
+            Sprites["window"].Bitmap.DrawRect(0, 0, Size.Width - WidgetPadding * 2, Size.Height - WidgetPadding * 2, new Color(59, 227, 255));
+            Sprites["window"].Bitmap.FillRect(1, 1, Size.Width - WidgetPadding * 2 - 2, Size.Height - WidgetPadding * 2 - 2, new Color(40, 62, 84));
+            Sprites["window"].Bitmap.Lock();
+            Sprites["window"].X = WidgetPadding;
+            Sprites["window"].Y = WidgetPadding;
+            return;
+        }
+
+        Sprites["window"].X = WidgetPadding + WindowEdges;
+        Sprites["window"].Y = WidgetPadding + WindowEdges;
         Sprites["window"].Bitmap = new Bitmap(Size.Width - WindowEdges * 2 - WidgetPadding * 2, Size.Height - WindowEdges * 2 - WidgetPadding * 2);
         Sprites["window"].Bitmap.Unlock();
         Sprites["window"].Bitmap.DrawRect(0, 0, Sprites["window"].Bitmap.Width, Sprites["window"].Bitmap.Height, new Color(59, 227, 255));
         Sprites["window"].Bitmap.FillRect(1, 1, Sprites["window"].Bitmap.Width - 2, Sprites["window"].Bitmap.Height - 2, new Color(40, 62, 84));
         Sprites["window"].Bitmap.Lock();
 
-        Sprites["shadow"].Bitmap?.Dispose();
         Sprites["shadow"].Bitmap = new Bitmap(Size.Width - WidgetPadding * 2, Size.Height - WidgetPadding * 2);
         Sprites["shadow"].Bitmap.Unlock();
         Sprites["shadow"].Bitmap.FillGradientRectOutside(

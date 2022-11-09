@@ -73,6 +73,7 @@ public class ParameterPanel : Widget
 		for (int i = 0; i < Widget.Properties.Count; i++)
 		{
 			Property p = Widget.Properties[i];
+			if (p == null) continue;
 			PropertyWidget pw = null;
 			Type type = null;
 			if (p.Type == PropertyType.Text) type = typeof(TextPropertyWidget);

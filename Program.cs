@@ -5,6 +5,7 @@ global using amethyst;
 
 using System;
 using RPGStudioMK.Game;
+using System.Reflection;
 
 namespace VisualDesigner;
 
@@ -96,6 +97,7 @@ public class Program
         if (Type == "button") t = typeof(ButtonWidgetData);
         else if (Type == "label") t = typeof(LabelWidgetData);
         else if (Type == "widget") t = typeof(WidgetData);
+        else throw new Exception($"Unknown data type '{Type}'.");
         dat = (WidgetData) Activator.CreateInstance(t, Dict);
         return dat;
     }
@@ -107,6 +109,7 @@ public class Program
         if (Widget is DesignButton) t = typeof(ButtonWidgetData);
         else if (Widget is DesignLabel) t = typeof(LabelWidgetData);
         else if (Widget.GetType() == typeof(DesignWidget)) t = typeof(WidgetData);
+        else throw new Exception($"Unknown widget type '{Widget.GetType().Name}'.");
         dat = (WidgetData) Activator.CreateInstance(t, Widget);
         return dat;
     }
@@ -118,7 +121,9 @@ public class Program
         if (Data.Type == "button") t = typeof(DesignButton);
         else if (Data.Type == "label") t = typeof(DesignLabel);
         else if (Data.Type == "widget") t = typeof(DesignWidget);
-        w = (DesignWidget) Activator.CreateInstance(t, Parent);
+        else throw new Exception($"Unknown data type '{Data.Type}'.");
+        if (t == typeof(DesignWidget)) w = (DesignWidget) Activator.CreateInstance(t, Parent, null);
+        else w = (DesignWidget) Activator.CreateInstance(t, Parent);
         Data.SetWidget(w);
         return w;
     }

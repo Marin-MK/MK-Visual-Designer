@@ -8,6 +8,7 @@ namespace VisualDesigner;
 
 public class DesignLabel : DesignWidget
 {
+	public override bool PasteAsChildren => false;
 	public string Text => Label.Text;
 	public Font Font => Label.Font;
 	public Color TextColor => Label.TextColor;
@@ -32,30 +33,35 @@ public class DesignLabel : DesignWidget
 				SetText((string) e);
 				if (Text != OldText) Undo.GenericUndoAction<string>.Register(this, "SetText", OldText, Text, true);
 			}),
+
             new Property("Text Color", PropertyType.Color, () => TextColor, e =>
 			{
 				Color OldTextColor = TextColor;
 				SetTextColor((Color) e);
 				if (!TextColor.Equals(OldTextColor)) Undo.GenericUndoAction<Color>.Register(this, "SetTextColor", OldTextColor, TextColor, true);
 			}),
+
             new Property("Font", PropertyType.Font, () => Font, e =>
 			{
 				Font OldFont = Font;
 				SetFont((Font) e);
 				if (!Font.Equals(OldFont)) Undo.GenericUndoAction<Font>.Register(this, "SetFont", OldFont, Font, true);
 			}),
+
 			new Property("Width Limit", PropertyType.Numeric, () => WidthLimit, e =>
 			{
 				int OldWidthLimit = WidthLimit;
 				SetWidthLimit((int) e);
 				if (WidthLimit != OldWidthLimit) Undo.GenericUndoAction<int>.Register(this, "SetWidthLimit", OldWidthLimit, WidthLimit, true);
 			}),
+
 			new Property("Limit Text", PropertyType.Text, () => LimitReplacementText, e =>
 			{
 				string OldLimitReplacementText = LimitReplacementText;
 				SetLimitReplacementText((string) e);
 				if (LimitReplacementText != OldLimitReplacementText) Undo.GenericUndoAction<string>.Register(this, "SetLimitReplacementText", OldLimitReplacementText, LimitReplacementText, true);
 			}),
+
 			new Property("Bold", PropertyType.Boolean, () => (DrawOptions & DrawOptions.Bold) != 0, e =>
 			{
 				DrawOptions OldDrawOptions = DrawOptions;
@@ -65,6 +71,7 @@ public class DesignLabel : DesignWidget
 				SetDrawOptions(ops);
 				if (ops != OldDrawOptions) Undo.GenericUndoAction<DrawOptions>.Register(this, "SetDrawOptions", OldDrawOptions, ops, true);
 			}),
+
             new Property("Italic", PropertyType.Boolean, () => (DrawOptions & DrawOptions.Italic) != 0, e =>
             {
 				DrawOptions OldDrawOptions = DrawOptions;
@@ -74,7 +81,8 @@ public class DesignLabel : DesignWidget
                 SetDrawOptions(ops);
                 if (ops != OldDrawOptions) Undo.GenericUndoAction<DrawOptions>.Register(this, "SetDrawOptions", OldDrawOptions, ops, true);
             }),
-            new Property("Underline", PropertyType.Boolean, () => (DrawOptions & DrawOptions.Underlined) != 0, e =>
+
+            new Property("Underlined", PropertyType.Boolean, () => (DrawOptions & DrawOptions.Underlined) != 0, e =>
             {
 				DrawOptions OldDrawOptions = DrawOptions;
                 DrawOptions ops = DrawOptions;
@@ -83,6 +91,7 @@ public class DesignLabel : DesignWidget
                 SetDrawOptions(ops);
                 if (ops != OldDrawOptions) Undo.GenericUndoAction<DrawOptions>.Register(this, "SetDrawOptions", OldDrawOptions, ops, true);
             }),
+
             new Property("Strikethrough", PropertyType.Boolean, () => (DrawOptions & DrawOptions.Strikethrough) != 0, e =>
             {
 				DrawOptions OldDrawOptions = DrawOptions;

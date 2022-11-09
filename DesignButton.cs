@@ -8,6 +8,8 @@ namespace VisualDesigner;
 
 public class DesignButton : DesignWidget
 {
+    public override bool PasteAsChildren => false;
+
     public static void CreateFadeCache()
     {
         Color black = new Color(0, 0, 0, 64);
@@ -33,11 +35,12 @@ public class DesignButton : DesignWidget
     public static Bitmap ButtonVerticalFade;
 
     public string Text { get; protected set; }
-    public Color TextColor { get; protected set; } = Color.WHITE;
     public Font Font { get; protected set; }
-    public bool LeftAlign { get; protected set; }
-    public int TextX { get; protected set; }
+    public Color TextColor { get; protected set; } = Color.WHITE;
+    public bool LeftAlign { get; protected set; } = false;
+    public int TextX { get; protected set; } = 0;
     public bool Enabled { get; protected set; } = true;
+    public bool Repeatable { get; protected set; } = false;
 
     int MaxWidth;
 
@@ -97,8 +100,55 @@ public class DesignButton : DesignWidget
 
         this.Properties.AddRange(new List<Property>()
         {
-            new Property("Text", PropertyType.Text, () => Text, e => SetText((string) e)),
-            new Property("Font", PropertyType.Font, () => Font, e => SetFont((Font) e))
+            new Property("Text", PropertyType.Text, () => Text, e =>
+			{
+				string OldText = Text;
+				SetText((string) e);
+				if (Text != OldText) Undo.GenericUndoAction<string>.Register(this, "SetText", OldText, Text, true);
+			}),
+
+            new Property("Text Color", PropertyType.Color, () => TextColor, e =>
+			{
+				Color OldTextColor = TextColor;
+				SetTextColor((Color) e);
+				if (!TextColor.Equals(OldTextColor)) Undo.GenericUndoAction<Color>.Register(this, "SetTextColor", OldTextColor, TextColor, true);
+			}),
+
+            new Property("Font", PropertyType.Font, () => Font, e =>
+			{
+				Font OldFont = Font;
+				SetFont((Font) e);
+				if (!Font.Equals(OldFont)) Undo.GenericUndoAction<Font>.Register(this, "SetFont", OldFont, Font, true);
+			}),
+
+            new Property("Left-Align", PropertyType.Boolean, () => LeftAlign, e =>
+            {
+                bool OldLeftAlign = LeftAlign;
+                SetLeftAlign((bool) e);
+                if (OldLeftAlign != LeftAlign) Undo.GenericUndoAction<bool>.Register(this, "SetLeftAlign", OldLeftAlign, LeftAlign, true);
+                Program.ParameterPanel.Refresh();
+            }),
+
+            new Property("Text X", PropertyType.Numeric, () => TextX, e =>
+            {
+                int OldTextX = TextX;
+                SetTextX((int) e);
+                if (OldTextX != TextX) Undo.GenericUndoAction<int>.Register(this, "SetTextX", OldTextX, TextX, true);
+            }, null, () => LeftAlign, "Not left-aligned"),
+
+            new Property("Enabled", PropertyType.Boolean, () => Enabled, e =>
+            {
+                bool OldEnabled = Enabled;
+                SetEnabled((bool) e);
+                if (OldEnabled != Enabled) Undo.GenericUndoAction<bool>.Register(this, "SetEnabled", OldEnabled, Enabled, true);
+            }),
+
+            new Property("Repeatable", PropertyType.Boolean, () => Repeatable, e =>
+            {
+                bool OldRepeatable = Repeatable;
+                SetRepeatable((bool) e);
+                if (OldRepeatable != Repeatable) Undo.GenericUndoAction<bool>.Register(this, "SetRepeatable", OldRepeatable, Repeatable, true);
+            })
         });
     }
 
@@ -161,6 +211,14 @@ public class DesignButton : DesignWidget
         {
             this.TextX = TextX;
             if (LeftAlign) Sprites["text"].X = WidgetPadding + 10 + TextX;
+        }
+    }
+
+    public void SetRepeatable(bool Repeatable)
+    {
+        if (this.Repeatable != Repeatable)
+        {
+            this.Repeatable = Repeatable;
         }
     }
 

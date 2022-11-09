@@ -15,6 +15,8 @@ public class DesignWidget : Widget
 	public static int HeightAdd = WidgetPadding * 2;
 	public static int SnapDifference = 12;
 
+	public virtual bool PasteAsChildren => true;
+
 	public string Name { get; set; }
 	public bool Selected { get; protected set; }
 	public List<Property> Properties { get; init; }
@@ -54,9 +56,9 @@ public class DesignWidget : Widget
 
 	protected Container SelectionContainer;
 
-	public DesignWidget(IContainer Parent, string BaseName) : base(Parent)
+	public DesignWidget(IContainer Parent, string? BaseName = null) : base(Parent)
 	{
-		this.Name = Program.DesignWindow?.GetName(BaseName);
+		if (!string.IsNullOrEmpty(BaseName)) this.Name = Program.DesignWindow?.GetName(BaseName);
 		Sprites["_bg"].X = WidgetPadding;
 		Sprites["_bg"].Y = WidgetPadding;
 		Sprites["box"] = new Sprite(this.Viewport);
@@ -75,11 +77,21 @@ public class DesignWidget : Widget
 
 		this.Properties = new List<Property>()
 		{
-			new Property("Name", PropertyType.Text, () => Name, e => 
+			new Property("Name", PropertyType.Text, () => Name, e =>
 			{
 				string OldName = Name;
-				this.Name = (string) e;
-				if (OldName != Name) Undo.NameUndoAction.Register(this, OldName, Name, true);
+				string NewName = (string) e;
+				DesignWidget? dw = Program.DesignWindow.GetWidgetByName(NewName);
+				if (dw != null)
+				{
+					new MessageBox("Error", $"A widget already exists with the name '{NewName}' (type '{dw.GetType().Name}').", ButtonType.OK, IconType.Error);
+					Program.ParameterPanel.Refresh();
+				}
+				else
+				{
+					this.Name = NewName;
+					if (OldName != Name) Undo.NameUndoAction.Register(this, OldName, Name, true);
+				}
 			}),
 
 			new Property("X", PropertyType.Numeric, () => Position.X, e =>
@@ -90,7 +102,7 @@ public class DesignWidget : Widget
 				if (!Moving && !OldPoint.Equals(NewPoint)) Undo.GenericUndoAction<Point>.Register(this, "SetPosition", OldPoint, NewPoint, true);
 			}),
 
-			new Property("Y", PropertyType.Numeric, () => Position.Y, e => 
+			new Property("Y", PropertyType.Numeric, () => Position.Y, e =>
 			{
 				Point OldPoint = this.Position;
 				SetPosition(Position.X, (int) e);
@@ -120,6 +132,18 @@ public class DesignWidget : Widget
                 if (this is DesignWindow) ((DesignWindow) this).Center();
 				Size NewSize = this.Size;
 				if (!Resizing && !OldSize.Equals(NewSize)) Undo.GenericUndoAction<Size>.Register(this, "SetSize", OldSize, NewSize, true);
+			}),
+
+			new Property("Auto-Resize", PropertyType.Boolean, () => AutoResize, e =>
+			{
+				bool OldAutoResize = this.AutoResize;
+				this.AutoResize = (bool) e;
+				this.UpdateAutoScroll();
+				if (OldAutoResize != AutoResize) Undo.CallbackUndoAction.Register(this, v =>
+				{
+					this.AutoResize = v;
+					this.UpdateAutoScroll();
+				}, true);
 			}),
 
 			new Property("BG Color", PropertyType.Color, () => BackgroundColor, e =>
@@ -249,21 +273,17 @@ public class DesignWidget : Widget
 						IsClickable = e => e.Value = this is not DesignWindow,
 						Items = new List<IMenuItem>()
 						{
-							new MenuItem("Button")
-							{
-								OnClicked = _ => CreateSibling("button")
-							}
-						}
+							new MenuItem("Button", _ => CreateSibling("button")),
+                            new MenuItem("Label", _ => CreateSibling("label")),
+                        }
 					},
 					new MenuItem("Child")
 					{
 						Items = new List<IMenuItem>()
 						{
-							new MenuItem("Button")
-							{
-								OnClicked = _ => CreateChild("button")
-							}
-						}
+							new MenuItem("Button", _ => CreateChild("button")),
+                            new MenuItem("Label", _ => CreateSibling("label")),
+                        }
 					}
 				}
 			},
@@ -277,15 +297,18 @@ public class DesignWidget : Widget
 				Shortcut = "Ctrl+X",
 				OnClicked = _ => CutSelection()
 			},
-			new MenuItem("Paste")
+			new MenuItem("Paste (smart)")
 			{
 				Shortcut = "Ctrl+V",
-				OnClicked = _ => PasteSelection(true)
+				OnClicked = _ => PasteSelection(PasteType.Smart)
 			},
-			new MenuItem("Paste as Sibling")
+            new MenuItem("Paste as Child")
+            {
+                OnClicked = _ => PasteSelection(PasteType.Child)
+            },
+            new MenuItem("Paste as Sibling")
 			{
-				Shortcut = "Ctrl+Shift+V",
-				OnClicked = _ => PasteSelection(false)
+				OnClicked = _ => PasteSelection(PasteType.Sibling)
 			},
 			new MenuItem("Duplicate")
 			{
@@ -321,8 +344,7 @@ public class DesignWidget : Widget
 			new Shortcut(this, new Key(Keycode.DELETE), _ => DeleteSelection()),
 			new Shortcut(this, new Key(Keycode.C, Keycode.CTRL), _ => CopySelection()),
 			new Shortcut(this, new Key(Keycode.X, Keycode.CTRL), _ => CutSelection()),
-			new Shortcut(this, new Key(Keycode.V, Keycode.CTRL), _ => PasteSelection(true)),
-			new Shortcut(this, new Key(Keycode.V, Keycode.SHIFT, Keycode.CTRL), _ => PasteSelection(false)),
+			new Shortcut(this, new Key(Keycode.V, Keycode.CTRL), _ => PasteSelection(PasteType.Smart)),
 			new Shortcut(this, new Key(Keycode.D, Keycode.CTRL), _ => DuplicateSelection())
         });
 
@@ -330,7 +352,8 @@ public class DesignWidget : Widget
 		OnSizeChanged += _ =>
 		{
 			if (MayRefresh) Program.ParameterPanel.Refresh();
-		};
+            UpdateAutoResizeParents();
+        };
 		OnPositionChanged += e =>
 		{
 			if (MayRefresh) Program.ParameterPanel.Refresh();
@@ -339,6 +362,7 @@ public class DesignWidget : Widget
                 Point ParentPos = ((DesignWidget) Parent).LocalPosition;
                 LocalPosition = new Point(ParentPos.X + Position.X + Padding.Left, ParentPos.Y + Position.Y + Padding.Up);
 			}
+			UpdateAutoResizeParents();
 		};
 		OnPaddingChanged += _ => 
 		{
@@ -350,6 +374,15 @@ public class DesignWidget : Widget
             }
         };
     }
+
+	private void UpdateAutoResizeParents()
+	{
+		if (this is DesignWindow) return;
+		DesignWidget DesignParent = (DesignWidget) Parent;
+		if (DesignParent.AutoResize) DesignParent.UpdateAutoScroll();
+		if (DesignParent is DesignWindow) return;
+		DesignParent.UpdateAutoResizeParents();
+	}
 
 	public void CopySelection(bool Delete = false)
 	{
@@ -365,30 +398,37 @@ public class DesignWidget : Widget
 		DeleteSelection();
 	}
 
-	public void PasteSelection(bool AsChild)
+	public void PasteSelection(PasteType PasteType)
 	{
 		if (Program.CopyData == null || Program.CopyData.Count == 0) return;
 		var data = Program.CopyData;
-		List<DesignWidget> Widgets = Program.DictToWidgets(AsChild ? this : (DesignWidget) Parent, data);
+		DesignWidget DesignParent = null;
+		if (PasteType == PasteType.Smart && this.PasteAsChildren || PasteType == PasteType.Child) DesignParent = this;
+		else DesignParent = (DesignWidget) Parent;
+		List<DesignWidget> Widgets = Program.DictToWidgets(DesignParent, data);
 		Program.DesignWindow.DeselectAll();
 		Widgets.ForEach(w => w.Select(true));
+		Undo.CreateDeleteUndoAction.Register(this, DesignParent.Name, data, false, false);
 	}
 
 	public void DuplicateSelection()
 	{
 		if (this is DesignWindow) return;
 		CopySelection();
-		PasteSelection(false);
+		PasteSelection(PasteType.Sibling);
 	}
 
 	public void DeleteSelection()
 	{
-		if (this is DesignWindow) return;
+		if (this is DesignWindow || Program.DesignWindow.SelectedWidgets.Count == 0) return;
+		List<Dictionary<string, object>> WidgetData = Program.WidgetsToDict(Program.DesignWindow.SelectedWidgets);
+		DesignWidget DesignParent = (DesignWidget) Program.DesignWindow.SelectedWidgets[0].Parent;
 		while (Program.DesignWindow.SelectedWidgets.Count > 0)
 		{
 			Program.DesignWindow.SelectedWidgets[0].Dispose();
 			Program.DesignWindow.SelectedWidgets.RemoveAt(0);
 		}
+		Undo.CreateDeleteUndoAction.Register(this, DesignParent.Name, WidgetData, true, true);
 	}
 
 	public void Select(bool AllowMultiple)
@@ -431,8 +471,18 @@ public class DesignWidget : Widget
 		if (Type == "button")
 		{
 			w = new DesignButton(Parent);
-			((DesignButton) w).SetText("Unnamed Button");
+			((DesignButton) w).SetText("Untitled Button");
 			w.SetSize(140 + WidgetPadding * 2, 33 + WidgetPadding * 2);
+		}
+		else if (Type == "label")
+		{
+			w = new DesignLabel(Parent);
+			((DesignLabel) w).SetText("Untitled Label");
+			((DesignLabel) w).SetFont(Fonts.Paragraph);
+		}
+		else
+		{
+			throw new Exception($"Unsupported widget type '{Type}'.");
 		}
 		int x = ContextMenuMouseOrigin.X - Parent.Viewport.X - w.Size.Width / 2;
         int y = ContextMenuMouseOrigin.Y - Parent.Viewport.Y - w.Size.Height / 2;
@@ -512,7 +562,11 @@ public class DesignWidget : Widget
 			CreatingSelection = true;
         }
         MovingMultiple = Program.DesignWindow.SelectedWidgets.Count > 1;
-        if (!Input.Press(Keycode.SHIFT) && (!Moving || !MovingMultiple)) Program.DesignWindow.DeselectAll();
+        if (!Input.Press(Keycode.SHIFT))
+		{
+			if (!Moving || !MovingMultiple) Program.DesignWindow.DeselectAll();
+            else if (Moving && !Selected) Program.DesignWindow.DeselectAll();
+		} 
         if (Moving)
 		{
 			// Deselect all selected child widgets, because they will already be moved by moving the parent
@@ -643,6 +697,20 @@ public class DesignWidget : Widget
 				w.Select(true);
 			}
 		}
+	}
+
+	public DesignWidget? GetWidgetByName(string Name)
+	{
+		if (this.Name == Name) return this;
+		foreach (Widget w in Widgets)
+		{
+			if (w is DesignWidget)
+			{
+				DesignWidget? dw = ((DesignWidget) w).GetWidgetByName(Name);
+				if (dw != null) return dw;
+			}
+		}
+		return null;
 	}
 
     public override void MouseMoving(MouseEventArgs e)
@@ -920,6 +988,7 @@ public class DesignWidget : Widget
 				}
                 else if (!Size.Equals(SizeOrigin)) Undo.GenericUndoAction<Size>.Register(this, "SetSize", this.SizeOrigin, this.Size, true);
 				Redraw();
+				if (this is DesignWindow) Program.MainWindow.CenterDesignWindow();
 			}
             if (Moving && !MovingMultiple && !Position.Equals(PositionOrigin))
             {
@@ -995,4 +1064,11 @@ public class DesignWidget : Widget
 		Sprites["box"].Bitmap.FillRect(Size.Width - MousePadding * 2 - BoxSize, Size.Height - MousePadding * 2 - BoxSize, BoxSize - 2, BoxSize - 2, CornerColor);
 		Sprites["box"].Bitmap.Lock();
 	}
+}
+
+public enum PasteType
+{
+    Smart,
+    Child,
+    Sibling
 }

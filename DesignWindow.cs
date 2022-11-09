@@ -64,7 +64,12 @@ public class DesignWindow : DesignWidget
 
         // Remove the Name property
         this.Properties.RemoveAll(p => p.Name == "Name" || p.Name == "X" || p.Name == "Y" || p.Name == "Docking" || p.Name == "Dock to Right" || p.Name == "Dock to Bottom" || p.Name == "Padding");
-        TitleProperty = new Property("Title", PropertyType.Text, () => Title, e => SetTitle((string) e));
+        TitleProperty = new Property("Title", PropertyType.Text, () => Title, e =>
+        {
+            string OldTitle = this.Title;
+            SetTitle((string) e);
+            if (OldTitle != this.Title) Undo.GenericUndoAction<string>.Register(this, "SetTitle", OldTitle, Title, true);
+        });
         this.Properties.AddRange(new List<Property>()
         {
             TitleProperty,
@@ -192,6 +197,7 @@ public class DesignWindow : DesignWidget
             SelectedWidgets[i].Deselect();
             SelectedWidgets.RemoveAt(i);
         }
+        Program.ParameterPanel.SetWidget(null);
     }
     
     public void DeselectChildWidgets(DesignWidget Widget)
@@ -370,12 +376,12 @@ public class DesignWindow : DesignWidget
     {
         if (x1 < 0) x1 = 0;
         if (y1 < 0) y1 = 0;
-        if (x1 >= OverlayContainer.Sprites["snaps"].Bitmap.Width) x1 = OverlayContainer.Sprites["snaps"].Bitmap.Width - 1;
-        if (y1 >= OverlayContainer.Sprites["snaps"].Bitmap.Height) y1 = OverlayContainer.Sprites["snaps"].Bitmap.Height - 1;
+        if (x1 >= Size.Width - WidgetPadding * 2) x1 = Size.Width - WidgetPadding * 2 - 1;
+        if (y1 >= Size.Height - WidgetPadding * 2) y1 = Size.Height - WidgetPadding * 2 - 1;
         if (x2 < 0) x2 = 0;
         if (y2 < 0) y2 = 0;
-        if (x2 >= OverlayContainer.Sprites["snaps"].Bitmap.Width) x2 = OverlayContainer.Sprites["snaps"].Bitmap.Width - 1;
-        if (y2 >= OverlayContainer.Sprites["snaps"].Bitmap.Height) y2 = OverlayContainer.Sprites["snaps"].Bitmap.Height - 1;
+        if (x2 >= Size.Width - WidgetPadding * 2) x2 = Size.Width - WidgetPadding * 2 - 1;
+        if (y2 >= Size.Height - WidgetPadding * 2) y2 = Size.Height - WidgetPadding * 2 - 1;
 
         int minx = Math.Min(x1, x2);
         int miny = Math.Min(y1, y2);

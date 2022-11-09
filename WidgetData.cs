@@ -50,6 +50,7 @@ public class WidgetData
         byte gC = (byte) (long) ValueFromPath(Data, "bgcolor", "green");
         byte bC = (byte) (long) ValueFromPath(Data, "bgcolor", "blue");
         byte aC = (byte) (long) ValueFromPath(Data, "bgcolor", "alpha");
+        this.BackgroundColor = new Color(rC, gC, bC, aC);
         List<Dictionary<string, object>> WidgetData = null;
         if (Data["widgets"] is List<object>)
         {
@@ -62,7 +63,6 @@ public class WidgetData
         }
         else throw new Exception("Invalid widget list data");
         this.Widgets = WidgetData.Select(dict => Program.DictToData(dict)).ToList();
-        this.BackgroundColor = new Color(rC, gC, bC, aC);
     }
 
     protected object ValueFromPath(Dictionary<string, object> Dict, params string[] Path)
@@ -128,20 +128,45 @@ public class ButtonWidgetData : WidgetData
 {
     public override string Type => "button";
     public string Text;
+    public Font Font;
+    public Color TextColor;
+    public bool LeftAlign;
+    public int TextX;
+    public bool Enabled;
+
 
     public ButtonWidgetData(DesignButton w) : base(w)
     {
         this.Text = w.Text;
+        this.Font = w.Font;
+        this.TextColor = w.TextColor;
+        this.LeftAlign = w.LeftAlign;
+        this.TextX = w.TextX;
+        this.Enabled = w.Enabled;
     }
 
     public ButtonWidgetData(Dictionary<string, object> d) : base(d)
     {
         this.Text = (string) d["text"];
+        this.Font = Font.Get((string) ValueFromPath(d, "font", "name"), (int) (long) ValueFromPath(d, "font", "size"));
+        byte rC = (byte) (long) ValueFromPath(d, "textcolor", "red");
+        byte gC = (byte) (long) ValueFromPath(d, "textcolor", "green");
+        byte bC = (byte) (long) ValueFromPath(d, "textcolor", "blue");
+        byte aC = (byte) (long) ValueFromPath(d, "textcolor", "alpha");
+        this.TextColor = new Color(rC, gC, bC, aC);
+        this.LeftAlign = (bool) d["leftalign"];
+        this.TextX = (int) (long) d["textx"];
+        this.Enabled = (bool) d["enabled"];
     }
 
     public override void AddToDict(Dictionary<string, object> Dict)
     {
         Dict.Add("text", Text);
+        Dict.Add("font", CreateDict(("name", Font.Name), ("size", (long) Font.Size)));
+        Dict.Add("textcolor", CreateDict(("red", (long) TextColor.Red), ("green", (long) TextColor.Green), ("blue", (long) TextColor.Blue), ("alpha", (long) TextColor.Alpha)));
+        Dict.Add("leftalign", LeftAlign);
+        Dict.Add("textx", (long) TextX);
+        Dict.Add("enabled", Enabled);
     }
 
     public override void SetWidget(DesignWidget Widget)
@@ -149,6 +174,11 @@ public class ButtonWidgetData : WidgetData
         base.SetWidget(Widget);
         DesignButton Button = (DesignButton) Widget;
         Button.SetText(this.Text);
+        Button.SetFont(this.Font);
+        Button.SetTextColor(this.TextColor);
+        Button.SetLeftAlign(this.LeftAlign);
+        Button.SetTextX(this.TextX);
+        Button.SetEnabled(this.Enabled);
     }
 }
 
@@ -156,20 +186,60 @@ public class LabelWidgetData : WidgetData
 {
     public override string Type => "label";
     public string Text;
+    public Font Font;
+    public Color TextColor;
+    public int WidthLimit;
+    public string LimitReplacementText;
+    public DrawOptions DrawOptions;
 
     public LabelWidgetData(DesignLabel w) : base(w)
     {
         this.Text = w.Text;
+        this.Font = w.Font;
+        this.TextColor = w.TextColor;
+        this.WidthLimit = w.WidthLimit;
+        this.LimitReplacementText = w.LimitReplacementText;
+        this.DrawOptions = w.DrawOptions;
     }
 
     public LabelWidgetData(Dictionary<string, object> d) : base(d)
     {
         this.Text = (string) d["text"];
+        this.Font = Font.Get((string) ValueFromPath(d, "font", "name"), (int) (long) ValueFromPath(d, "font", "size"));
+        byte rC = (byte) (long) ValueFromPath(d, "textcolor", "red");
+        byte gC = (byte) (long) ValueFromPath(d, "textcolor", "green");
+        byte bC = (byte) (long) ValueFromPath(d, "textcolor", "blue");
+        byte aC = (byte) (long) ValueFromPath(d, "textcolor", "alpha");
+        this.TextColor = new Color(rC, gC, bC, aC);
+        this.WidthLimit = (int) (long) d["widthlimit"];
+        this.LimitReplacementText = (string) d["limittext"];
+        DrawOptions ops = DrawOptions.LeftAlign;
+        if ((bool) ValueFromPath(d, "drawoptions", "bold")) ops |= DrawOptions.Bold;
+        if ((bool) ValueFromPath(d, "drawoptions", "italic")) ops |= DrawOptions.Italic;
+        if ((bool) ValueFromPath(d, "drawoptions", "underlined")) ops |= DrawOptions.Underlined;
+        if ((bool) ValueFromPath(d, "drawoptions", "strikethrough")) ops |= DrawOptions.Strikethrough;
+        if ((bool) ValueFromPath(d, "drawoptions", "leftalign")) ops |= DrawOptions.LeftAlign;
+        if ((bool) ValueFromPath(d, "drawoptions", "rightalign")) ops |= DrawOptions.RightAlign;
+        if ((bool) ValueFromPath(d, "drawoptions", "centeralign")) ops |= DrawOptions.CenterAlign;
+        this.DrawOptions = ops;
     }
 
     public override void AddToDict(Dictionary<string, object> Dict)
     {
         Dict.Add("text", Text);
+        Dict.Add("font", CreateDict(("name", Font.Name), ("size", (long) Font.Size)));
+        Dict.Add("textcolor", CreateDict(("red", (long) TextColor.Red), ("green", (long) TextColor.Green), ("blue", (long) TextColor.Blue), ("alpha", (long) TextColor.Alpha)));
+        Dict.Add("widthlimit", (long) WidthLimit);
+        Dict.Add("limittext", LimitReplacementText);
+        Dict.Add("drawoptions", CreateDict(
+            ("bold", (DrawOptions & DrawOptions.Bold) != 0),
+            ("italic", (DrawOptions & DrawOptions.Italic) != 0),
+            ("underlined", (DrawOptions & DrawOptions.Underlined) != 0),
+            ("strikethrough", (DrawOptions & DrawOptions.Strikethrough) != 0),
+            ("leftalign", (DrawOptions & DrawOptions.LeftAlign) != 0),
+            ("centeralign", (DrawOptions & DrawOptions.CenterAlign) != 0),
+            ("rightalign", (DrawOptions & DrawOptions.RightAlign) != 0)
+        ));
     }
 
     public override void SetWidget(DesignWidget Widget)
@@ -177,5 +247,10 @@ public class LabelWidgetData : WidgetData
         base.SetWidget(Widget);
         DesignLabel Label = (DesignLabel) Widget;
         Label.SetText(this.Text);
+        Label.SetFont(this.Font);
+        Label.SetTextColor(this.TextColor);
+        Label.SetWidthLimit(this.WidthLimit);
+        Label.SetLimitReplacementText(this.LimitReplacementText);
+        Label.SetDrawOptions(this.DrawOptions);
     }
 }

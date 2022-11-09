@@ -14,10 +14,12 @@ public class VDTextBox : Widget
     public bool NumericOnly => TextArea.NumericOnly;
     public int DefaultNumericValue => TextArea.DefaultNumericValue;
     public bool Enabled => TextArea.Enabled;
+    public bool ShowDisabledText => TextArea.ShowDisabledText;
     public TextEvent OnTextChanged { get => TextArea.OnTextChanged; set => TextArea.OnTextChanged = value; }
     public BaseEvent OnWidgetDeselected { get => TextArea.OnWidgetDeselected; set => TextArea.OnWidgetDeselected = value; }
 
-	public VDTextBox(IContainer Parent) : base(Parent)
+
+    public VDTextBox(IContainer Parent) : base(Parent)
 	{
         TextArea = new TextArea(this);
         TextArea.SetFont(Fonts.Paragraph);
@@ -49,5 +51,10 @@ public class VDTextBox : Widget
     public void SetEnabled(bool Enabled)
     {
         TextArea.SetEnabled(Enabled);
+    }
+
+    public void SetShowDisabledText(bool ShowDisabledText)
+    {
+        TextArea.SetShowDisabledText(ShowDisabledText);
     }
 }

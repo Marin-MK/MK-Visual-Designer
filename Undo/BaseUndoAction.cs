@@ -11,12 +11,13 @@ public class BaseUndoAction
     public virtual string Title => GetType().Name;
     public List<BaseUndoAction> OtherActions;
 
-    protected DesignWidget Widget;
+    protected string WidgetName;
     protected bool RefreshParameters;
+    protected DesignWidget Widget => Program.DesignWindow.GetWidgetByName(WidgetName);
 
     public BaseUndoAction(DesignWidget Widget, bool RefreshParameters, List<BaseUndoAction>? OtherActions)
     {
-        this.Widget = Widget;
+        this.WidgetName = Widget.Name;
         this.RefreshParameters = RefreshParameters;
         this.OtherActions = OtherActions ?? new List<BaseUndoAction>();
     }
@@ -37,8 +38,8 @@ public class BaseUndoAction
         List<BaseUndoAction> ListA = IsRedo ? Program.RedoList : Program.UndoList;
         List<BaseUndoAction> ListB = IsRedo ? Program.UndoList : Program.RedoList;
         int Index = ListA.IndexOf(this);
-        bool OldMayRefresh = Widget.MayRefresh;
-        Widget.MayRefresh = false;
+        bool OldMayRefresh = Widget?.MayRefresh ?? true;
+        if (Widget != null) Widget.MayRefresh = false;
         for (int i = ListA.Count - 1; i >= Index; i--)
         {
             BaseUndoAction action = ListA[i];
@@ -51,6 +52,6 @@ public class BaseUndoAction
             }
         }
         if (RefreshParameters) Program.ParameterPanel.Refresh();
-        Widget.MayRefresh = OldMayRefresh;
+        if (Widget != null) Widget.MayRefresh = OldMayRefresh;
     }
 }

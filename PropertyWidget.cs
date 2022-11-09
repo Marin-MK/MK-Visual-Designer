@@ -68,7 +68,7 @@ public class TextPropertyWidget : PropertyWidget
 		TextBox.OnWidgetDeselected += _ =>
 		{
 			if (!Available) return;
-			Property.OnSetValue(TextBox.Text);
+			Property.OnSetValue(TextBox.Text.Replace("\\n", "\n"));
 		};
     }
 
@@ -80,7 +80,12 @@ public class TextPropertyWidget : PropertyWidget
 			throw new NotImplementedException();
 		}
 		object value = Property.GetValue();
-        if (value is string) TextBox.SetText((string) value);
+        if (value is string)
+		{
+			string txt = (string) value;
+			txt = txt.Replace("\n", "\\n");
+			TextBox.SetText(txt);
+		}
 	}
 
 	public override void SetEnabled(bool Enabled)
@@ -106,7 +111,8 @@ public class NumericPropertyWidget : PropertyWidget
         TextBox = new VDTextBox(this);
 		TextBox.SetNumericOnly(true);
 		TextBox.SetDefaultNumericValue((int) Property.GetValue());
-		int? MinValue = null;
+		TextBox.SetShowDisabledText(true);
+        int? MinValue = null;
 		int? MaxValue = null;
 		if (Property.Parameters is List<object>)
 		{
@@ -133,8 +139,11 @@ public class NumericPropertyWidget : PropertyWidget
 		base.Refresh();
 		if (!Available)
 		{
-			throw new NotImplementedException();
+			TextBox.SetText(Property.UnavailableText);
+			TextBox.SetEnabled(false);
+			return;
 		}
+        TextBox.SetEnabled(true);
         TextBox.SetText(((int) Property.GetValue()).ToString());
     }
 

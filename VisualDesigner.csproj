@@ -8,6 +8,7 @@
     <Platforms>x64</Platforms>
     <Configurations>Debug</Configurations>
     <ApplicationIcon>logo-64x64.ico</ApplicationIcon>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>

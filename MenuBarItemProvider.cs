@@ -16,17 +16,10 @@ public static class MenuBarItemProvider
             {
                 Items = new List<IMenuItem>()
                 {
-                    new MenuItem("New Project", _ => Program.NewProject()),
-                    new MenuItem("Open Project", _ => Program.OpenProject()),
-                    new MenuItem("Save Project", _ => Program.SaveProject()),
-                    new MenuItem("Export As")
-                    {
-                        Items = new List<IMenuItem>()
-                        {
-                            new MenuItem("Image", _ => Program.ExportAsPNG()),
-                            new MenuItem("Pseudo-Code", _ => Program.ExportAsPseudoCode())
-                        }
-                    },
+                    new MenuItem("New", _ => Program.NewProject()),
+                    new MenuItem("Open", _ => Program.OpenProject()),
+                    new MenuItem("Save", _ => Program.SaveProject()),
+                    new MenuItem("Export as Code", _ => Program.ExportAsPseudoCode()),
                     new MenuSeparator(),
                     new MenuItem("Exit", _ => Program.Exit(true))
                 }

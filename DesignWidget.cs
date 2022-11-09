@@ -403,12 +403,25 @@ public class DesignWidget : Widget
 		if (Program.CopyData == null || Program.CopyData.Count == 0) return;
 		var data = Program.CopyData;
 		DesignWidget DesignParent = null;
+		if (Program.DesignWindow.SelectedWidgets.Count > 1) PasteType = PasteType.Sibling;
 		if (PasteType == PasteType.Smart && this.PasteAsChildren || PasteType == PasteType.Child) DesignParent = this;
 		else DesignParent = (DesignWidget) Parent;
 		List<DesignWidget> Widgets = Program.DictToWidgets(DesignParent, data);
 		Program.DesignWindow.DeselectAll();
 		Widgets.ForEach(w => w.Select(true));
-		Undo.CreateDeleteUndoAction.Register(this, DesignParent.Name, data, false, false);
+		Undo.CreateDeleteUndoAction.Register(this, DesignParent.Name, CloneData(data), false, false);
+	}
+
+	private List<Dictionary<string, object>> CloneData(List<Dictionary<string, object>> data)
+	{
+		List<Dictionary<string, object>> NewList = new List<Dictionary<string, object>>();
+		foreach (var dict in data)
+		{
+			Dictionary<string, object> NewDict = new Dictionary<string, object>(dict);
+			NewDict["widgets"] = CloneData((List<Dictionary<string, object>>) dict["widgets"]);
+			NewList.Add(NewDict);
+		}
+		return NewList;
 	}
 
 	public void DuplicateSelection()
@@ -537,10 +550,10 @@ public class DesignWidget : Widget
         return this.Name == Name || this.Widgets.Any(w => w is DesignWidget && ((DesignWidget) w).ExistsWithName(Name));
     }
 
-    public string GetName(string BaseName)
+    public string GetName(string BaseName, int StartIndex = 0)
     {
         string Name = BaseName;
-        int i = 0;
+        int i = StartIndex;
         while (true)
         {
             Name = BaseName + i.ToString();

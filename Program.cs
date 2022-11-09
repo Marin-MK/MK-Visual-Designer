@@ -6,6 +6,7 @@ global using amethyst;
 using System;
 using RPGStudioMK.Game;
 using System.Reflection;
+using System.Text;
 
 namespace VisualDesigner;
 
@@ -38,7 +39,7 @@ public class Program
         {
             OpenProject(ProjectFile);
         }
-        OpenProject("C:/Users/m3rei/Desktop/UnnamedWindow.mkui");
+        OpenProject("C:/Users/m3rei/Desktop/design.png");
 
         Graphics.Update();
         win.UI.Widgets.ForEach(e => e.UpdateBounds());
@@ -90,9 +91,10 @@ public class Program
     {
         List<WidgetData> DataList = Data.Select(dict => DictToData(dict)).ToList();
         List<DesignWidget> Widgets = new List<DesignWidget>();
-        foreach (WidgetData wdgt in DataList)
+        for (int i = 0; i < DataList.Count; i++)
         {
-            Widgets.Add(WidgetFromData(Parent, wdgt));
+            Widgets.Add(WidgetFromData(Parent, DataList[i]));
+            Data[i]["name"] = Widgets[i].Name;
         }
         return Widgets;
     }
@@ -183,7 +185,7 @@ public class Program
     {
         OpenFileDialog ofd = new OpenFileDialog();
         ofd.SetTitle("Open Project File");
-        ofd.SetFilter(new FileFilter("MK UI Design", "mkui"));
+        ofd.SetFilter(new FileFilter("MK UI Design", "png"));
         string? Filename = ofd.ChooseFile();
         if (!string.IsNullOrEmpty(Filename))
         {
@@ -203,67 +205,75 @@ public class Program
             };
             return;
         }
-        StreamReader sr = new StreamReader(File.OpenRead(ProjectFile));
-        string json = sr.ReadToEnd();
-        sr.Close();
+        string json = null;
+        if (ProjectFile.EndsWith(".png"))
+        {
+            decodl.PNGDecoder decoder = new decodl.PNGDecoder(ProjectFile);
+            if (decoder.HasChunk("mKUI"))
+            {
+                byte[] Data = decoder.GetChunk("mKUI", true);
+                json = Encoding.Default.GetString(Data);
+            }
+            else
+            {
+                new MessageBox("Error", $"This image was not exported by the Visual Designer and does not have any usable data.", ButtonType.OK, IconType.Error);
+                return;
+            }
+        }
+        else
+        {
+            StreamReader sr = new StreamReader(File.OpenRead(ProjectFile));
+            json = sr.ReadToEnd();
+            sr.Close();
+        }
         try
         {
             WindowData WindowData = JSONToData(json);
-            Graphics.Schedule(() =>
+            ClearProject();
+            DesignWindow.Name = WindowData.Name;
+            DesignWindow.SetTitle(WindowData.Title);
+            DesignWindow.SetSize(WindowData.Size);
+            DesignWindow.SetFullscreen(WindowData.Fullscreen);
+            DesignWindow.SetIsPopup(WindowData.IsPopup);
+            WindowData.Widgets.ForEach(data =>
             {
-                ClearProject();
-                DesignWindow.Name = WindowData.Name;
-                DesignWindow.SetTitle(WindowData.Title);
-                DesignWindow.SetSize(WindowData.Size);
-                DesignWindow.SetFullscreen(WindowData.Fullscreen);
-                DesignWindow.SetIsPopup(WindowData.IsPopup);
-                WindowData.Widgets.ForEach(data =>
-                {
-                    WidgetFromData(DesignWindow, data);
-                });
+                WidgetFromData(DesignWindow, data);
             });
         }
         catch (Exception ex)
         {
-            Graphics.Schedule(() =>
+            MessageBox win = new MessageBox("Error", $"Unknown error occurred.\n\n{ex}: {ex.Message}\n{ex.StackTrace}", ButtonType.OK, IconType.Error);
+            win.OnClosed += _ =>
             {
-                MessageBox win = new MessageBox("Error", $"Unknown error occurred.\n\n{ex}: {ex.Message}\n{ex.StackTrace}", ButtonType.OK, IconType.Error);
-                win.OnClosed += _ =>
-                {
-                    Exit(false);
-                };
-            });
+                Exit(false);
+            };
         }
     }
 
-    public static async Task SaveProject()
+    public static unsafe void SaveProject()
     {
-        string json = WidgetToJSON(DesignWindow, true);
-        Console.WriteLine(json);
+        string json = WidgetToJSON(DesignWindow);
         OpenFileDialog ofd = new OpenFileDialog();
         ofd.SetTitle("Save Project File");
-        ofd.SetFilter(new FileFilter("MK UI Design", "mkui"));
+        ofd.SetFilter(new FileFilter("MK UI Design", "png"));
         ofd.SetInitialDirectory(ofd.DefaultFolder + "/" + DesignWindow.Name);
-        string Filename = ofd.SaveFile();
+        string? Filename = ofd.SaveFile();
         if (!string.IsNullOrEmpty(Filename))
         {
-            StreamWriter sw = new StreamWriter(File.OpenWrite(Filename));
-            await sw.WriteAsync(json);
-            sw.Close();
+            DesignWindow.DeselectAll();
+            Bitmap Bitmap = DesignWindow.ToBitmap(-DesignWindow.WindowEdges, -DesignWindow.WindowEdges);
+            decodl.PNGEncoder encoder = new decodl.PNGEncoder(Bitmap.PixelPointer, (uint) Bitmap.Width, (uint) Bitmap.Height);
+            encoder.InvertData = Bitmap.RGBA8;
+            encoder.ColorType = decodl.ColorTypes.RGBA;
+            encoder.AddCustomChunk("mKUI", json);
+            encoder.Encode(Filename);
+            DesignWindow.UpdateBounds();
         }
     }
 
     public static void EnsureSaved(Action Callback)
     {
         Callback();
-    }
-
-    public static void ExportAsPNG()
-    {
-        DesignWindow.DeselectAll();
-        Bitmap Bitmap = DesignWindow.ToBitmap(-DesignWindow.WindowEdges, -DesignWindow.WindowEdges);
-        Bitmap.SaveToPNG("C:/Users/m3rei/Desktop/window.png");
-        DesignWindow.UpdateBounds();
     }
 
     public static void ExportAsPseudoCode() { }

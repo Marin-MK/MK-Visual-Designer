@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace VisualDesigner;
@@ -95,7 +96,19 @@ public class WidgetData
 
     public virtual void SetWidget(DesignWidget Widget)
     {
-        Widget.Name = this.Name;
+        if (Program.DesignWindow.GetWidgetByName(this.Name) != null)
+        {
+            Match m = Regex.Match(this.Name, @"^.*?(\d+)");
+            string name = this.Name;
+            int idx = 0;
+            if (m.Success)
+            {
+                idx = Convert.ToInt32(m.Groups[1].Value);
+                name = name.Replace(idx.ToString(), "");
+            }
+            Widget.Name = Program.DesignWindow.GetName(name, idx);
+        }
+        else Widget.Name = this.Name;
         Widget.SetPosition(this.Position);
         Widget.SetSize(this.Size);
         Widget.SetPadding(this.Padding);

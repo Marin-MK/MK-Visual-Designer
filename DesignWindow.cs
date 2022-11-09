@@ -12,13 +12,13 @@ public class DesignWindow : DesignWidget
     public string Title { get; protected set; } = "Unnamed Window";
     public bool Fullscreen { get; protected set; } = false;
     public bool IsPopup { get; protected set; } = true;
+    public int WindowEdges = 7;
 
     public DesignWidget HoveringWidget;
     public List<DesignWidget> SelectedWidgets = new List<DesignWidget>();
 
     Property TitleProperty;
     Container OverlayContainer;
-    int WindowEdges = 7;
 
 	public DesignWindow(IContainer Parent) : base(Parent, "UnnamedWindow")
 	{

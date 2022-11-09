@@ -46,17 +46,6 @@ public class Program
         win.Show();
         Graphics.Update(false, true);
 
-        //PopupWindow pop = new PopupWindow();
-        //pop.SetSize(640, 480);
-        //pop.SetTitle("Unnamed");
-        //pop.Center();
-        //
-        //Button btn = new Button(pop);
-        //btn.SetPosition(0, 20);
-        //btn.SetText("OK");
-        //btn.SetContextMenuFont(Fonts.ParagraphBold);
-        //btn.SetSize(200, 100);
-
         Amethyst.Run();
     }
 
@@ -162,9 +151,6 @@ public class Program
         }
     }
 
-    /// <summary>
-    /// Redoes the latest change that you undid.
-    /// </summary>
     public static void Redo()
     {
         if (RedoList.Count > 0 && !Input.TextInputActive())
@@ -272,7 +258,13 @@ public class Program
         Callback();
     }
 
-    public static void ExportAsPNG() { }
+    public static void ExportAsPNG()
+    {
+        DesignWindow.DeselectAll();
+        Bitmap Bitmap = DesignWindow.ToBitmap(-DesignWindow.WindowEdges, -DesignWindow.WindowEdges);
+        Bitmap.SaveToPNG("C:/Users/m3rei/Desktop/window.png");
+        DesignWindow.UpdateBounds();
+    }
 
     public static void ExportAsPseudoCode() { }
 

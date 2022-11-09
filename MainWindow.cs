@@ -14,7 +14,10 @@ public class MainWindow : UIWindow
 		SetIcon("assets/img/logo.png");
 		Maximize();
 
+		Container MainContainer = new Container(UI);
+
 		Grid MainGrid = new Grid(UI);
+		MainGrid.SetDocked(true);
 		MainGrid.SetColumns(
 			new GridSize(366, Unit.Pixels),
 			new GridSize(1)

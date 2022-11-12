@@ -357,25 +357,24 @@ public class DesignWidget : Widget
 		OnPositionChanged += e =>
 		{
 			if (MayRefresh) Program.ParameterPanel.Refresh();
-			if (this is not DesignWindow)
-			{
-                Point ParentPos = ((DesignWidget) Parent).LocalPosition;
-                LocalPosition = new Point(ParentPos.X + Position.X + Padding.Left, ParentPos.Y + Position.Y + Padding.Up);
-			}
+			if (this is not DesignWindow) RecalculateLocalPosition();
 			UpdateAutoResizeParents();
 		};
 		OnPaddingChanged += _ => 
 		{
 			if (MayRefresh) Program.ParameterPanel.Refresh();
-            if (this is not DesignWindow)
-            {
-                Point ParentPos = ((DesignWidget) Parent).LocalPosition;
-                LocalPosition = new Point(ParentPos.X + Position.X + Padding.Left, ParentPos.Y + Position.Y + Padding.Up);
-            }
+			if (this is not DesignWindow) RecalculateLocalPosition();
         };
     }
 
-	private void UpdateAutoResizeParents()
+	private void RecalculateLocalPosition()
+    {
+        Point ParentPos = ((DesignWidget) Parent).LocalPosition;
+        LocalPosition = new Point(ParentPos.X + Position.X + Padding.Left, ParentPos.Y + Position.Y + Padding.Up);
+		Widgets.FindAll(w => w is DesignWidget).ForEach(w => ((DesignWidget) w).RecalculateLocalPosition());
+    }
+
+    private void UpdateAutoResizeParents()
 	{
 		if (this is DesignWindow) return;
 		DesignWidget DesignParent = (DesignWidget) Parent;

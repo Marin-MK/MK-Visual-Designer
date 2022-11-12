@@ -301,7 +301,7 @@ public class DesignWindow : DesignWidget
         {
             int min = Math.Min(r1.Y + (r1.Height - HeightAdd) / 2, r2.Y + (r2.Height - HeightAdd) / 2);
             int max = Math.Max(r1.Y + (r1.Height - HeightAdd) / 2, r2.Y + (r2.Height - HeightAdd) / 2);
-            int x = r1.X - 4;
+            int x = WidgetPadding + r1.X - 4;
             Snaps.Add(DrawSnap(x, min, x, max));
             if (!NoRealSnapping && !(SizeSnapsOnly && !ResizeMoveX))
                 MovingWidget.SetHorizontallySnapped();
@@ -310,7 +310,7 @@ public class DesignWindow : DesignWidget
         {
             int min = Math.Min(r1.Y + (r1.Height - HeightAdd) / 2, r2.Y + (r2.Height - HeightAdd) / 2);
             int max = Math.Max(r1.Y + (r1.Height - HeightAdd) / 2, r2.Y + (r2.Height - HeightAdd) / 2);
-            int x = r1.X + r1.Width - WidthAdd + 2;
+            int x = WidgetPadding + r1.X + r1.Width - WidthAdd + 2;
             Snaps.Add(DrawSnap(x, min, x, max));
             if (!NoRealSnapping && !(r1.X + r1.Width - WidthAdd + 6 == r2.X && SizeSnapsOnly && ResizeMoveX && w1 == MovingWidget ||
                 r1.X + r1.Width - WidthAdd + 6 == r2.X && SizeSnapsOnly && !ResizeMoveX && w2 == MovingWidget ||
@@ -321,7 +321,7 @@ public class DesignWindow : DesignWidget
         {
             int min = Math.Min(r1.Y + (r1.Height - HeightAdd) / 2, r2.Y + (r2.Height - HeightAdd) / 2);
             int max = Math.Max(r1.Y + (r1.Height - HeightAdd) / 2, r2.Y + (r2.Height - HeightAdd) / 2);
-            int x = r1.X + (r1.Width - WidthAdd) / 2;
+            int x = r1.X + r1.Width / 2;
             Snaps.Add(DrawSnap(x, min, x, max));
             if (!NoRealSnapping) MovingWidget.SetHorizontallySnapped();
         }
@@ -329,7 +329,7 @@ public class DesignWindow : DesignWidget
         {
             int min = Math.Min(r1.X + (r1.Width - WidthAdd) / 2, r2.X + (r2.Width - WidthAdd) / 2);
             int max = Math.Max(r1.X + (r1.Width - WidthAdd) / 2, r2.X + (r2.Width - WidthAdd) / 2);
-            int y = r1.Y - 4;
+            int y = WidgetPadding + r1.Y - 4;
             Snaps.Add(DrawSnap(min, y, max, y));
             if (!NoRealSnapping && !(SizeSnapsOnly && !ResizeMoveY))
                 MovingWidget.SetVerticallySnapped();
@@ -338,7 +338,7 @@ public class DesignWindow : DesignWidget
         {
             int min = Math.Min(r1.X + (r1.Width - WidthAdd) / 2, r2.X + (r2.Width - WidthAdd) / 2);
             int max = Math.Max(r1.X + (r1.Width - WidthAdd) / 2, r2.X + (r2.Width - WidthAdd) / 2);
-            int y = r1.Y + r1.Height - HeightAdd + 2;
+            int y = WidgetPadding + r1.Y + r1.Height - HeightAdd + 2;
             Snaps.Add(DrawSnap(min, y, max, y));
             if (!NoRealSnapping && !(r1.Y + r1.Height - HeightAdd + 6 == r2.Y && SizeSnapsOnly && ResizeMoveY && w1 == MovingWidget ||
                   r1.Y + r1.Height - HeightAdd + 6 == r2.Y && SizeSnapsOnly && !ResizeMoveY && w2 == MovingWidget ||
@@ -349,7 +349,7 @@ public class DesignWindow : DesignWidget
         {
             int min = Math.Min(r1.X + (r1.Width - WidthAdd) / 2, r2.X + (r2.Width - WidthAdd) / 2);
             int max = Math.Max(r1.X + (r1.Width - WidthAdd) / 2, r2.X + (r2.Width - WidthAdd) / 2);
-            int y = r1.Y + (r1.Height - HeightAdd) / 2;
+            int y = r1.Y + r1.Height / 2;
             Snaps.Add(DrawSnap(min, y, max, y));
             if (!NoRealSnapping) MovingWidget.SetVerticallySnapped();
         }

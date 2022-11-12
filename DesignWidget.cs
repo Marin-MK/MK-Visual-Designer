@@ -310,9 +310,9 @@ public class DesignWidget : Widget
 				Shortcut = "Ctrl+D",
 				OnClicked = _ => DuplicateSelection()
 			},
-			new MenuItem("Surround with Container")
+			new MenuItem("Flatten")
 			{
-				OnClicked = _ => SurroundWithContainer(),
+				OnClicked = _ => Flatten(),
 				IsClickable = e => e.Value = this is not DesignWindow
 			},
 			new MenuSeparator(),
@@ -443,17 +443,23 @@ public class DesignWidget : Widget
 		Undo.CreateDeleteUndoAction.Register(this, DesignParent.Name, WidgetData, true, true);
 	}
 
-	public void SurroundWithContainer()
+	public DesignWidget Flatten(List<DesignWidget>? WidgetList = null, string? ParentName = null, bool Undoable = true)
 	{
-		if (this is DesignWindow || Program.DesignWindow.SelectedWidgets.Count == 0) return;
-		DesignWidget DesignParent = (DesignWidget) Program.DesignWindow.SelectedWidgets[0].Parent;
+		bool WasNull = false;
+		if (WidgetList == null)
+		{
+			WidgetList = Program.DesignWindow.SelectedWidgets;
+			WasNull = true;
+		}
+		if (this is DesignWindow && WidgetList == null || WidgetList.Count == 0) return null;
+		DesignWidget DesignParent = string.IsNullOrEmpty(ParentName) ? (DesignWidget) WidgetList[0].Parent : Program.DesignWindow.GetWidgetByName(ParentName);
 		int minx = int.MaxValue;
 		int miny = int.MaxValue;
 		int maxwidth = int.MinValue;
 		int maxheight = int.MinValue;
-		for (int i = 0; i < Program.DesignWindow.SelectedWidgets.Count; i++)
+		for (int i = 0; i < WidgetList.Count; i++)
 		{
-			DesignWidget w = Program.DesignWindow.SelectedWidgets[i];
+			DesignWidget w = WidgetList[i];
 			int x = w.Position.X + w.Padding.Left;
 			int y = w.Position.Y + w.Padding.Up;
 			int width = w.Size.Width;
@@ -463,17 +469,28 @@ public class DesignWidget : Widget
 			if (x + width > maxwidth) maxwidth = x + width;
 			if (y + height > maxheight) maxheight = y + height;
 		}
-		DesignWidget Container = new DesignWidget(DesignParent);
+		DesignWidget Container = new DesignWidget(DesignParent, "UnnamedContainer");
 		Container.SetPosition(minx, miny);
-		Container.SetSize(maxwidth, maxheight);
-		for (int i = 0; i < Program.DesignWindow.SelectedWidgets.Count; i++)
+		Container.SetSize(maxwidth - minx, maxheight - miny);
+		List<Undo.BaseUndoAction> Actions = new List<Undo.BaseUndoAction>();
+		for (int i = 0; i < WidgetList.Count; i++)
 		{
-			DesignWidget w = Program.DesignWindow.SelectedWidgets[i];
+			DesignWidget w = WidgetList[i];
+			DesignWidget OldParent = (DesignWidget) w.Parent;
+			Point OldPosition = w.Position;
+			int OldZIndex = w.ZIndex;
 			w.SetParent(Container);
-			w.SetPosition(Position.X - minx, Position.Y - miny);
+			w.SetPosition(w.Position.X - minx, w.Position.Y - miny);
 			w.SetZIndex(Container.ZIndex + 1);
+			if (Undoable) Actions.Add(Undo.FlattenUndoAction.Create(w, OldPosition, w.Position, OldParent.Name, Container.Name, OldZIndex, w.ZIndex, false));
 		}
-		Container.SetBackgroundColor(Color.RED);
+		if (Undoable) Undo.FlattenGroupUndoAction.Register(Container, DesignParent.Name, Container.Position, Container.Size, true, Actions);
+		if (WasNull || WidgetList.All(w => w.Selected))
+		{
+			Program.DesignWindow.DeselectAll();
+			Container.Select(false);
+		}
+		return Container;
 	}
 
 	public void Select(bool AllowMultiple)

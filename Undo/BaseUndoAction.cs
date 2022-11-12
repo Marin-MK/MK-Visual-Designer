@@ -12,9 +12,9 @@ public class BaseUndoAction
     public List<BaseUndoAction> OtherActions;
     public bool IsSavedState = false;
 
-    protected string WidgetName;
-    protected bool RefreshParameters;
-    protected DesignWidget Widget => Program.DesignWindow.GetWidgetByName(WidgetName);
+    public string WidgetName;
+    public bool RefreshParameters;
+    public DesignWidget Widget => Program.DesignWindow.GetWidgetByName(WidgetName);
 
     public BaseUndoAction(DesignWidget Widget, bool RefreshParameters, List<BaseUndoAction>? OtherActions)
     {
@@ -47,7 +47,7 @@ public class BaseUndoAction
         {
             BaseUndoAction action = ListA[i];
             bool success = action.Trigger(IsRedo);
-            action.OtherActions.ForEach(a => success &= a.Trigger(IsRedo));
+            if (action is not FlattenGroupUndoAction) action.OtherActions.ForEach(a => success &= a.Trigger(IsRedo));
             if (success)
             {
                 ListB.Add(action);

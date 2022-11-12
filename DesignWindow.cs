@@ -138,14 +138,16 @@ public class DesignWindow : DesignWidget
     {
         base.MouseMoving(e);
         List<DesignWidget> HoveringWidgets = GetHoveredWidgets(e.X, e.Y);
-        int max = int.MinValue;
+        int maxtime = int.MinValue;
+        int maxz = int.MinValue;
         DesignWidget curr = null;
         for (int i = 0; i < HoveringWidgets.Count; i++)
         {
             DesignWidget w = HoveringWidgets[i];
-            if (w.Viewport.CreationTime > max)
+            if (w.Viewport.CreationTime > maxtime || w.Viewport.Z > maxz)
             {
-                max = w.Viewport.CreationTime;
+                maxtime = w.Viewport.CreationTime;
+                maxz = w.Viewport.Z;
                 curr = w;
             }
         }
@@ -313,8 +315,8 @@ public class DesignWindow : DesignWidget
             int x = WidgetPadding + r1.X + r1.Width - WidthAdd + 2;
             Snaps.Add(DrawSnap(x, min, x, max));
             if (!NoRealSnapping && !(r1.X + r1.Width - WidthAdd + 6 == r2.X && SizeSnapsOnly && ResizeMoveX && w1 == MovingWidget ||
-                r1.X + r1.Width - WidthAdd + 6 == r2.X && SizeSnapsOnly && !ResizeMoveX && w2 == MovingWidget ||
-                  r1.X + r1.Width == r2.X + r2.Width && SizeSnapsOnly && ResizeMoveX))
+                                     r1.X + r1.Width - WidthAdd + 6 == r2.X && SizeSnapsOnly && !ResizeMoveX && w2 == MovingWidget ||
+                                     r1.X + r1.Width == r2.X + r2.Width && SizeSnapsOnly && ResizeMoveX))
                 MovingWidget.SetHorizontallySnapped();
         }
         if (r1.X + r1.Width / 2d == r2.X + r2.Width / 2d || r1.Width % 2 != r2.Width % 2 && r1.X + r1.Width / 2 == r2.X + r2.Width / 2 && Math.Abs(r1.X + r1.Width - (r2.X + r2.Width)) > 1)
@@ -341,8 +343,8 @@ public class DesignWindow : DesignWidget
             int y = WidgetPadding + r1.Y + r1.Height - HeightAdd + 2;
             Snaps.Add(DrawSnap(min, y, max, y));
             if (!NoRealSnapping && !(r1.Y + r1.Height - HeightAdd + 6 == r2.Y && SizeSnapsOnly && ResizeMoveY && w1 == MovingWidget ||
-                  r1.Y + r1.Height - HeightAdd + 6 == r2.Y && SizeSnapsOnly && !ResizeMoveY && w2 == MovingWidget ||
-                  r1.Y + r1.Height == r2.Y + r2.Height && SizeSnapsOnly && ResizeMoveY))
+                                                       r1.Y + r1.Height - HeightAdd + 6 == r2.Y && SizeSnapsOnly && !ResizeMoveY && w2 == MovingWidget ||
+                                                       r1.Y + r1.Height == r2.Y + r2.Height && SizeSnapsOnly && ResizeMoveY))
                 MovingWidget.SetVerticallySnapped();
         }
         if (r1.Y + r1.Height / 2d == r2.Y + r2.Height / 2d || r1.Height % 2 != r2.Height % 2 && r1.Y + r1.Height / 2 == r2.Y + r2.Height / 2 && Math.Abs(r1.Y + r1.Height - (r2.Y + r2.Height)) > 1)

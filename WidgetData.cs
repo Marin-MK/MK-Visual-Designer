@@ -317,3 +317,61 @@ public class LabelWidgetData : WidgetData
         Label.SetDrawOptions(this.DrawOptions);
     }
 }
+
+public class ListWidgetData : WidgetData
+{
+    public override string Type => "list";
+    public Font Font;
+    public int LineHeight;
+    public List<string> Items;
+    public bool Enabled;
+    public int SelectedIndex;
+    public Color SelectedItemColor;
+
+    public ListWidgetData(DesignListBox w) : base(w)
+    {
+        this.Font = w.Font;
+        this.LineHeight = w.LineHeight;
+        this.Items = w.Items.Select(i => i.Name).ToList();
+        this.Enabled = w.Enabled;
+        this.SelectedIndex = w.SelectedIndex;
+        this.SelectedItemColor = w.SelectedItemColor;
+    }
+
+    public ListWidgetData(Dictionary<string, object> Data) : base(Data)
+    {
+        this.Font = Font.Get((string) ValueFromPath(Data, "font", "name"), (int) (long) ValueFromPath(Data, "font", "size"));
+        this.LineHeight = (int) (long) Data["lineheight"];
+        if (Data["items"] is List<string>) this.Items = ((List<string>) Data["items"]);
+        else this.Items = ((List<object>) Data["items"]).Select(o => o.ToString()).ToList();
+        this.Enabled = (bool) Data["enabled"];
+        this.SelectedIndex = (int) (long) Data["selectedindex"];
+        byte rC = (byte) (long) ValueFromPath(Data, "selectedcolor", "red");
+        byte gC = (byte) (long) ValueFromPath(Data, "selectedcolor", "green");
+        byte bC = (byte) (long) ValueFromPath(Data, "selectedcolor", "blue");
+        byte aC = (byte) (long) ValueFromPath(Data, "selectedcolor", "alpha");
+        this.SelectedItemColor = new Color(rC, gC, bC, aC);
+    }
+
+    public override void AddToDict(Dictionary<string, object> Dict)
+    {
+        Dict.Add("font", CreateDict(("name", Font.Name.Replace('\\', '/')), ("size", (long) Font.Size)));
+        Dict.Add("lineheight", (long) LineHeight);
+        Dict.Add("items", Items);
+        Dict.Add("enabled", Enabled);
+        Dict.Add("selectedindex", (long) SelectedIndex);
+        Dict.Add("selectedcolor", CreateDict(("red", (long) SelectedItemColor.Red), ("green", (long) SelectedItemColor.Green), ("blue", (long) SelectedItemColor.Blue), ("alpha", (long) SelectedItemColor.Alpha)));
+    }
+
+    public override void SetWidget(DesignWidget Widget)
+    {
+        base.SetWidget(Widget);
+        DesignListBox List = (DesignListBox) Widget;
+        List.SetFont(this.Font);
+        List.SetLineHeight(this.LineHeight);
+        List.SetItems(this.Items.Select(i => new ListItem(i)).ToList());
+        List.SetEnabled(this.Enabled);
+        List.SetSelectedIndex(this.SelectedIndex);
+        List.SetSelectedItemColor(this.SelectedItemColor);
+    }
+}

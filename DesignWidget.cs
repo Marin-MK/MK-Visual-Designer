@@ -270,6 +270,7 @@ public class DesignWidget : Widget
 						{
 							new MenuItem("Button", _ => CreateSibling("button")),
                             new MenuItem("Label", _ => CreateSibling("label")),
+							new MenuItem("ListBox", _ => CreateSibling("list"))
                         }
 					},
 					new MenuItem("Child")
@@ -277,7 +278,8 @@ public class DesignWidget : Widget
 						Items = new List<IMenuItem>()
 						{
 							new MenuItem("Button", _ => CreateChild("button")),
-                            new MenuItem("Label", _ => CreateSibling("label")),
+                            new MenuItem("Label", _ => CreateChild("label")),
+							new MenuItem("ListBox", _ => CreateChild("list"))
                         }
 					}
 				}
@@ -560,6 +562,17 @@ public class DesignWidget : Widget
 			w = new DesignLabel(Parent);
 			((DesignLabel) w).SetText("Untitled Label");
 			((DesignLabel) w).SetFont(Fonts.Paragraph);
+		}
+		else if (Type == "list")
+		{
+			w = new DesignListBox(Parent);
+			w.SetSize(160, 200);
+			((DesignListBox) w).SetItems(new List<ListItem>()
+			{
+				new ListItem("Item One"),
+				new ListItem("Item Two"),
+				new ListItem("Item Three")
+			});
 		}
 		else
 		{

@@ -465,3 +465,48 @@ public class ColorPropertyWidget : PropertyWidget
         DropdownBox.SetSize(Size.Width - DropdownBox.Position.X - 4, DropdownBox.Size.Height);
     }
 }
+
+public class ListPropertyWidget : PropertyWidget
+{
+    protected VDDropdownBox DropdownBox;
+
+	public ListPropertyWidget(IContainer Parent, Property Property, float HSeparatorX) : base(Parent, Property, HSeparatorX)
+	{
+		DropdownBox = new VDDropdownBox(this);
+		DropdownBox.SetPosition(0, 4);
+		DropdownBox.SetText("Edit Items");
+		Refresh();
+		DropdownBox.OnDropDownClicked += _ =>
+		{
+			GenericListWindow win = new GenericListWindow("Edit Items", (List<string>) Property.GetValue());
+			win.OnClosed += _ =>
+			{
+				if (!win.Apply) return;
+				Property.SetValue(win.Value);
+				Refresh();
+			};
+		};
+	}
+
+    public override void Refresh()
+    {
+        base.Refresh();
+		if (!Available)
+		{
+			throw new NotImplementedException();
+		}
+    }
+
+    public override void SetEnabled(bool Enabled)
+    {
+        DropdownBox.SetEnabled(Enabled);
+    }
+
+    public override void SizeChanged(BaseEventArgs e)
+    {
+        base.SizeChanged(e);
+        if (DropdownBox == null) return;
+        DropdownBox.SetPosition(Sprites["hsep"].X + 4, DropdownBox.Position.Y);
+        DropdownBox.SetSize(Size.Width - DropdownBox.Position.X - 4, DropdownBox.Size.Height);
+    }
+}

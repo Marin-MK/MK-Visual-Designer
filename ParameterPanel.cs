@@ -83,6 +83,7 @@ public class ParameterPanel : Widget
 			else if (p.Type == PropertyType.Padding) type = typeof(PaddingPropertyWidget);
 			else if (p.Type == PropertyType.Boolean) type = typeof(BoolPropertyWidget);
 			else if (p.Type == PropertyType.Color) type = typeof(ColorPropertyWidget);
+			else if (p.Type == PropertyType.List) type = typeof(ListPropertyWidget);
 			pw = (PropertyWidget) Activator.CreateInstance(type, PropertyStackPanel, p, HSeperatorX);
             pw.SetMargins(2);
 			PropertyWidgets.Add(pw);

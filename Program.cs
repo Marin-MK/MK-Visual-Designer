@@ -110,6 +110,7 @@ public class Program
         string Type = (string) Dict["type"];
         if (Type == "button") t = typeof(ButtonWidgetData);
         else if (Type == "label") t = typeof(LabelWidgetData);
+        else if (Type == "list") t = typeof(ListWidgetData);
         else if (Type == "container") t = typeof(WidgetData);
         else if (Type == "window") t = typeof(WindowData);
         else throw new Exception($"Unknown data type '{Type}'.");
@@ -124,6 +125,7 @@ public class Program
         if (Widget is DesignWindow) t = typeof(WindowData);
         else if (Widget is DesignButton) t = typeof(ButtonWidgetData);
         else if (Widget is DesignLabel) t = typeof(LabelWidgetData);
+        else if (Widget is DesignListBox) t = typeof(ListWidgetData);
         else if (Widget.GetType() == typeof(DesignWidget)) t = typeof(WidgetData);
         else throw new Exception($"Unknown widget type '{Widget.GetType().Name}'.");
         dat = (WidgetData) Activator.CreateInstance(t, Widget);
@@ -136,6 +138,7 @@ public class Program
         System.Type t = null;
         if (Data.Type == "button") t = typeof(DesignButton);
         else if (Data.Type == "label") t = typeof(DesignLabel);
+        else if (Data.Type == "list") t = typeof(DesignListBox);
         else if (Data.Type == "container") t = typeof(DesignWidget);
         else throw new Exception($"Unknown data type '{Data.Type}'.");
         if (t == typeof(DesignWidget)) w = (DesignWidget) Activator.CreateInstance(t, Parent, null);

@@ -46,5 +46,6 @@ public enum PropertyType
     Font,
     Padding,
     Boolean,
-    Color
+    Color,
+    List
 }

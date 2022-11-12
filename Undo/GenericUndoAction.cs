@@ -35,7 +35,7 @@ public class GenericUndoAction<T> : BaseUndoAction
     {
         Type type = Widget.GetType();
         MethodInfo? method = type.GetMethod(SetMethodName, BindingFlags.Public | BindingFlags.Instance | BindingFlags.InvokeMethod, new Type[] { typeof(T) });
-        if (method == null) throw new Exception($"No SetText method found on type {type.Name}");
+        if (method == null) throw new Exception($"No {SetMethodName} method found on type {type.Name}");
         method.Invoke(Widget, new object[] { IsRedo ? NewValue : OldValue });
         return true;
     }

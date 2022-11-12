@@ -13,6 +13,9 @@ namespace VisualDesigner;
 
 public class Program
 {
+    public static string? ProjectFile;
+    public static bool UnsavedChanges = false;
+    public static bool AnySavedStateExists = false;
     public static MainWindow MainWindow;
     public static Container DesignContainer;
     public static DesignWindow DesignWindow;
@@ -40,7 +43,7 @@ public class Program
         {
             OpenProject(ProjectFile);
         }
-        //OpenProject("C:/Users/m3rei/Desktop/design.png");
+        else OpenProject("example.png");
 
         Graphics.Update();
         win.UI.Widgets.ForEach(e => e.UpdateBounds());
@@ -150,7 +153,19 @@ public class Program
     {
         if (UndoList.Count > 0 && !Input.TextInputActive())
         {
-            UndoList[UndoList.Count - 1].RevertTo(false);
+            Undo.BaseUndoAction action = UndoList[UndoList.Count - 1];
+            action.RevertTo(false);
+            Undo.BaseUndoAction? prior = UndoList.Count > 0 ? UndoList[UndoList.Count - 1] : null;
+            if (prior?.IsSavedState ?? false || prior == null && !AnySavedStateExists)
+            {
+                UnsavedChanges = false;
+                if (MainWindow.Text.EndsWith("*")) MainWindow.SetText(MainWindow.Text.Substring(0, MainWindow.Text.Length - 1));
+            }
+            else
+            {
+                UnsavedChanges = true;
+                if (!MainWindow.Text.EndsWith("*")) MainWindow.SetText(MainWindow.Text + "*");
+            }
         }
     }
 
@@ -158,7 +173,18 @@ public class Program
     {
         if (RedoList.Count > 0 && !Input.TextInputActive())
         {
-            RedoList[RedoList.Count - 1].RevertTo(true);
+            Undo.BaseUndoAction action = RedoList[RedoList.Count - 1];
+            action.RevertTo(true);
+            if (action.IsSavedState)
+            {
+                UnsavedChanges = false;
+                if (MainWindow.Text.EndsWith("*")) MainWindow.SetText(MainWindow.Text.Substring(0, MainWindow.Text.Length - 1));
+            }
+            else
+            {
+                UnsavedChanges = true;
+                if (!MainWindow.Text.EndsWith("*")) MainWindow.SetText(MainWindow.Text + "*");
+            }
         }
     }
 
@@ -209,6 +235,7 @@ public class Program
         string json = null;
         if (ProjectFile.EndsWith(".png"))
         {
+            Program.ProjectFile = ProjectFile;
             decodl.PNGDecoder decoder = new decodl.PNGDecoder(ProjectFile);
             if (decoder.HasChunk("mKUI"))
             {
@@ -254,7 +281,37 @@ public class Program
 
     public static unsafe void SaveProject()
     {
+        if (string.IsNullOrEmpty(ProjectFile)) throw new Exception("Could not save to unknown project file.");
         string json = WidgetToJSON(DesignWindow);
+        Widget ActiveWidget = MainWindow.UI.SelectedWidget;
+        List<DesignWidget> SelectedWidgets = new List<DesignWidget>(DesignWindow.SelectedWidgets);
+        DesignWindow.DeselectAll();
+        Bitmap Bitmap = DesignWindow.ToBitmap(-DesignWindow.WindowEdges, -DesignWindow.WindowEdges);
+        decodl.PNGEncoder encoder = new decodl.PNGEncoder(Bitmap.PixelPointer, (uint)Bitmap.Width, (uint)Bitmap.Height);
+        encoder.InvertData = Bitmap.RGBA8;
+        encoder.ColorType = decodl.ColorTypes.RGBA;
+        encoder.AddCustomChunk("mKUI", json);
+        encoder.Encode(ProjectFile);
+        DesignWindow.UpdateBounds();
+        SelectedWidgets.ForEach(w => w.Select(true));
+        MainWindow.UI.SetSelectedWidget(ActiveWidget);
+        if (MainWindow.Text.EndsWith("*")) MainWindow.SetText(MainWindow.Text.Substring(0, MainWindow.Text.Length - 1));
+        UnsavedChanges = false;
+        UndoList.ForEach(u => u.IsSavedState = false);
+        RedoList.ForEach(r => r.IsSavedState = false);
+        if (UndoList.Count > 0)
+        {
+            UndoList[^1].IsSavedState = true;
+            AnySavedStateExists = true;
+        }
+        else
+        {
+            AnySavedStateExists = false;
+        }
+    }
+
+    public static unsafe void SaveProjectAs()
+    {
         OpenFileDialog ofd = new OpenFileDialog();
         ofd.SetTitle("Save Project File");
         ofd.SetFilter(new FileFilter("MK UI Design", "png"));
@@ -262,14 +319,8 @@ public class Program
         string? Filename = ofd.SaveFile();
         if (!string.IsNullOrEmpty(Filename))
         {
-            DesignWindow.DeselectAll();
-            Bitmap Bitmap = DesignWindow.ToBitmap(-DesignWindow.WindowEdges, -DesignWindow.WindowEdges);
-            decodl.PNGEncoder encoder = new decodl.PNGEncoder(Bitmap.PixelPointer, (uint) Bitmap.Width, (uint) Bitmap.Height);
-            encoder.InvertData = Bitmap.RGBA8;
-            encoder.ColorType = decodl.ColorTypes.RGBA;
-            encoder.AddCustomChunk("mKUI", json);
-            encoder.Encode(Filename);
-            DesignWindow.UpdateBounds();
+            ProjectFile = Filename;
+            SaveProject();
         }
     }
 

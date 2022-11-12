@@ -10,6 +10,7 @@ public class BaseUndoAction
 {
     public virtual string Title => GetType().Name;
     public List<BaseUndoAction> OtherActions;
+    public bool IsSavedState = false;
 
     protected string WidgetName;
     protected bool RefreshParameters;
@@ -26,6 +27,8 @@ public class BaseUndoAction
     {
         Program.UndoList.Add(this);
         Program.RedoList.Clear();
+        Program.UnsavedChanges = true;
+        if (!Program.MainWindow.Text.EndsWith("*")) Program.MainWindow.SetText(Program.MainWindow.Text + "*");
     }
 
     public virtual bool Trigger(bool IsRedo)

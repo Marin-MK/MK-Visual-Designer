@@ -32,6 +32,7 @@ public class MainWindow : UIWindow
 		MainMenuBar.SetGridColumn(0, 1);
 		MainMenuBar.SetBackgroundColor(10, 23, 37);
 		MainMenuBar.SetItems(MenuBarItemProvider.GetItems());
+		MainMenuBar.RemoveShortcuts();
 
 		Container Seperator = new Container(MainGrid);
 		Seperator.SetGridRow(1);
@@ -54,6 +55,7 @@ public class MainWindow : UIWindow
 
 		UI.RegisterShortcut(new Shortcut(null, new Key(Keycode.Z, Keycode.CTRL), _ => Program.Undo(), true));
         UI.RegisterShortcut(new Shortcut(null, new Key(Keycode.Y, Keycode.CTRL), _ => Program.Redo(), true));
+		UI.RegisterShortcut(new Shortcut(null, new Key(Keycode.S, Keycode.CTRL) , _ => Program.SaveProject(), true));
     }
 
 	public override void SizeChanged(BaseEventArgs e)

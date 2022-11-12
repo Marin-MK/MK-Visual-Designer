@@ -19,6 +19,7 @@ public static class MenuBarItemProvider
                     new MenuItem("New", _ => Program.NewProject()),
                     new MenuItem("Open", _ => Program.OpenProject()),
                     new MenuItem("Save", _ => Program.SaveProject()),
+                    new MenuItem("Save As", _ => Program.SaveProjectAs()),
                     new MenuItem("Export as Code", _ => Program.ExportAsPseudoCode()),
                     new MenuSeparator(),
                     new MenuItem("Exit", _ => Program.Exit(true))

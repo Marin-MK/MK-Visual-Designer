@@ -10,6 +10,7 @@ namespace VisualDesigner;
 public class WidgetData
 {
     public virtual string Type => "container";
+    public string ParentName; // Used only in copy/paste
     public string Name;
     public Point Position;
     public Size Size;
@@ -22,6 +23,7 @@ public class WidgetData
     public WidgetData(DesignWidget Widget)
     {
         this.Name = Widget.Name;
+        this.ParentName = Widget.Parent is DesignWidget ? ((DesignWidget) Widget.Parent).Name : null;
         this.Position = new Point(Widget.Position.X, Widget.Position.Y);
         this.Size = new Size(Widget.Size.Width, Widget.Size.Height);
         this.Padding = new Padding(Widget.Padding.Left, Widget.Padding.Up, Widget.Padding.Right, Widget.Padding.Down);
@@ -35,21 +37,22 @@ public class WidgetData
     {
         this.Name = (string) Data["name"];
         this.Size = new Size(0, 0);
-        this.Size.Width = (int)(long)ValueFromPath(Data, "size", "width");
-        this.Size.Height = (int)(long)ValueFromPath(Data, "size", "height");
+        this.Size.Width = (int) (long) ValueFromPath(Data, "size", "width");
+        this.Size.Height = (int) (long) ValueFromPath(Data, "size", "height");
         List<Dictionary<string, object>> WidgetData = null;
         if (Data["widgets"] is List<object>)
         {
-            List<object> objList = (List<object>)Data["widgets"];
+            List<object> objList = (List<object>) Data["widgets"];
             WidgetData = objList.Select(o => (Dictionary<string, object>)o).ToList();
         }
         else if (Data["widgets"] is List<Dictionary<string, object>>)
         {
-            WidgetData = (List<Dictionary<string, object>>)Data["widgets"];
+            WidgetData = (List<Dictionary<string, object>>) Data["widgets"];
         }
         else throw new Exception("Invalid widget list data");
         this.Widgets = WidgetData.Select(dict => Program.DictToData(dict)).ToList();
         if (this is WindowData) return;
+        this.ParentName = (string) Data["parentname"];
         this.Position = new Point(0, 0);
         this.Position.X = (int) (long) ValueFromPath(Data, "position", "x");
         this.Position.Y = (int) (long) ValueFromPath(Data, "position", "y");
@@ -126,6 +129,7 @@ public class WidgetData
         Dictionary<string, object> Dict = new Dictionary<string, object>();
         Dict.Add("type", this.Type);
         Dict.Add("name", Name);
+        Dict.Add("parentname", ParentName);
         Dict.Add("position", CreateDict(("x", (long) Position.X), ("y", (long) Position.Y)));
         Dict.Add("size", CreateDict(("width", (long) Size.Width), ("height", (long) Size.Height)));
         Dict.Add("padding", CreateDict(("left", (long) Padding.Left), ("up", (long) Padding.Up), ("right", (long) Padding.Right), ("down", (long) Padding.Down)));

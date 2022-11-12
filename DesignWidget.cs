@@ -406,6 +406,25 @@ public class DesignWidget : Widget
 		if (PasteType == PasteType.Smart && this.PasteAsChildren || PasteType == PasteType.Child) DesignParent = this;
 		else DesignParent = (DesignWidget) Parent;
 		List<DesignWidget> Widgets = Program.DictToWidgets(DesignParent, data);
+		string PasteOriginParentName = (string) data[0]["parentname"];
+		int minx = int.MaxValue;
+		int miny = int.MaxValue;
+		int maxw = int.MinValue;
+		int maxh = int.MinValue;
+		Widgets.ForEach(w =>
+		{
+			if (w.Position.X < minx) minx = w.Position.X;
+			if (w.Position.Y < miny) miny = w.Position.Y;
+			if (w.Position.X + w.Size.Width > maxw) maxw = w.Position.X + w.Size.Width;
+			if (w.Position.Y + w.Size.Height > maxh) maxh = w.Position.Y + w.Size.Height;
+		});
+		int avgx = minx + (maxw - minx) / 2;
+		int avgy = miny + (maxh - miny) / 2;
+		if (DesignParent.Name != PasteOriginParentName)
+			Widgets.ForEach(w =>  w.SetPosition(
+				(w.Position.X - avgx) + w.Parent.Size.Width / 2,
+				(w.Position.Y - avgy) + w.Parent.Size.Height / 2
+			));
 		Program.DesignWindow.DeselectAll();
 		Widgets.ForEach(w => w.Select(true));
 		Undo.CreateDeleteUndoAction.Register(this, DesignParent.Name, CloneData(data), false, false);

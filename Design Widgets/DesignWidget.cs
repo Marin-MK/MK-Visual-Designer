@@ -61,15 +61,15 @@ public class DesignWidget : Widget
 		if (!string.IsNullOrEmpty(BaseName)) this.Name = Program.DesignWindow?.GetName(BaseName) ?? BaseName ?? "Unknown";
 		Sprites["_bg"].X = WidgetPadding;
 		Sprites["_bg"].Y = WidgetPadding;
-		Sprites["box"] = new Sprite(this.Viewport);
-		Sprites["box"].X = MousePadding;
-		Sprites["box"].Y = MousePadding;
-		Sprites["box"].Z = 10;
+		Sprites["_box"] = new Sprite(this.Viewport);
+		Sprites["_box"].X = MousePadding;
+		Sprites["_box"].Y = MousePadding;
+		Sprites["_box"].Z = 10;
 		MinimumSize = new Size(WidthAdd, HeightAdd);
 
 		SelectionContainer = new Container(this);
 		SelectionContainer.SetDocked(true);
-		SelectionContainer.Sprites["sel"] = new Sprite(SelectionContainer.Viewport);
+		SelectionContainer.Sprites["_sel"] = new Sprite(SelectionContainer.Viewport);
 
 		OnWidgetSelected += WidgetSelected;
 
@@ -270,7 +270,8 @@ public class DesignWidget : Widget
 						{
 							new MenuItem("Button", _ => CreateSibling("button")),
                             new MenuItem("Label", _ => CreateSibling("label")),
-							new MenuItem("ListBox", _ => CreateSibling("list"))
+							new MenuItem("List Box", _ => CreateSibling("list")),
+							new MenuItem("Text Box", _ => CreateSibling("textbox"))
                         }
 					},
 					new MenuItem("Child")
@@ -279,7 +280,8 @@ public class DesignWidget : Widget
 						{
 							new MenuItem("Button", _ => CreateChild("button")),
                             new MenuItem("Label", _ => CreateChild("label")),
-							new MenuItem("ListBox", _ => CreateChild("list"))
+							new MenuItem("List Box", _ => CreateChild("list")),
+							new MenuItem("Text Box", _ => CreateChild("textbox"))
                         }
 					}
 				}
@@ -566,13 +568,22 @@ public class DesignWidget : Widget
 		else if (Type == "list")
 		{
 			w = new DesignListBox(Parent);
-			w.SetSize(160, 200);
+			w.SetSize(160 + WidthAdd, 200 + HeightAdd);
+			((DesignListBox) w).SetFont(Fonts.Paragraph);
 			((DesignListBox) w).SetItems(new List<ListItem>()
 			{
 				new ListItem("Item One"),
 				new ListItem("Item Two"),
 				new ListItem("Item Three")
 			});
+		}
+		else if (Type == "textbox")
+		{
+			w = new DesignTextBox(Parent);
+			w.SetSize(100 + WidthAdd, 27 + HeightAdd);
+			((DesignTextBox) w).SetText("Blank");
+			((DesignTextBox) w).SetFont(Fonts.Paragraph);
+			((DesignTextBox) w).SetCaretHeight(14);
 		}
 		else
 		{
@@ -738,7 +749,7 @@ public class DesignWidget : Widget
     // Move to DesignWidget.cs and make selections possible for every widget (e.g. for within a large Container widget, while not selecting random things outside the container that may overlap).
     protected Rect? DrawSelectionBox(int x, int y, int width, int height)
     {
-        SelectionContainer.Sprites["sel"].Bitmap?.Dispose();
+        SelectionContainer.Sprites["_sel"].Bitmap?.Dispose();
         if (x < 0)
         {
             width += x;
@@ -754,10 +765,10 @@ public class DesignWidget : Widget
 		if (y >= SelectionContainer.Size.Height) return null;
         if (y + height >= SelectionContainer.Size.Height) height -= y + height - SelectionContainer.Size.Height;
 		if (width < 1 || height < 1) return null;
-		SelectionContainer.Sprites["sel"].X = x;
-		SelectionContainer.Sprites["sel"].Y = y;
-        SelectionContainer.Sprites["sel"].Bitmap = new Bitmap(width, height);
-        SelectionContainer.Sprites["sel"].Bitmap.Unlock();
+		SelectionContainer.Sprites["_sel"].X = x;
+		SelectionContainer.Sprites["_sel"].Y = y;
+        SelectionContainer.Sprites["_sel"].Bitmap = new Bitmap(width, height);
+        SelectionContainer.Sprites["_sel"].Bitmap.Unlock();
 		for (int dy = 0; dy < height; dy++)
 		{
 			for (int dx = 0; dx < width; dx++)
@@ -766,17 +777,17 @@ public class DesignWidget : Widget
 				{
 					if (dx != 2 && dx != width -3 && (dx == 0 || dx == 1 || dx == width - 1 || dx == width - 2 || ((dx + 2) / 4) % 2 == 0) &&
 						dy != 2 && dy != height - 3 && (dy == 0 || dy == 1 || dy == height - 1 || dy == height - 2 || ((dy + 2) / 4) % 2 == 0))
-						SelectionContainer.Sprites["sel"].Bitmap.SetPixel(dx, dy, new Color(128, 128, 128));
+						SelectionContainer.Sprites["_sel"].Bitmap.SetPixel(dx, dy, new Color(128, 128, 128));
 				}
 			}
 		}
-        SelectionContainer.Sprites["sel"].Bitmap.Lock();
+        SelectionContainer.Sprites["_sel"].Bitmap.Lock();
 		return new Rect(x, y, width, height);
     }
 
     void DisposeSelectionBox()
     {
-        SelectionContainer.Sprites["sel"].Bitmap?.Dispose();
+        SelectionContainer.Sprites["_sel"].Bitmap?.Dispose();
     }
 
 	void SelectWidgetsInArea(Rect Area, bool AllowMultiple)
@@ -1141,22 +1152,22 @@ public class DesignWidget : Widget
 		int BoxSize = WidgetPadding - MousePadding;
 		int LinePos = BoxSize / 2;
 
-		Sprites["box"].Visible = Selected || Pressing || Hovering;
+		Sprites["_box"].Visible = Selected || Pressing || Hovering;
 
-		if (!Redraw && !((Hovering || Pressing) && Sprites["box"].Bitmap == null)) return;
-		Sprites["box"].Bitmap?.Dispose();
-		Sprites["box"].Bitmap = new Bitmap(Size.Width - MousePadding * 2, Size.Height - MousePadding * 2);
-		Sprites["box"].Bitmap.Unlock();
-		Sprites["box"].Bitmap.DrawRect(LinePos, LinePos, Size.Width - MousePadding * 2 - LinePos * 2 - 1, Size.Height - MousePadding * 2 - LinePos * 2 - 1, LineColor);
-		Sprites["box"].Bitmap.DrawRect(0, 0, BoxSize, BoxSize, Color.BLACK);
-		Sprites["box"].Bitmap.FillRect(1, 1, BoxSize - 2, BoxSize - 2, CornerColor);
-        Sprites["box"].Bitmap.DrawRect(Size.Width - MousePadding * 2 - BoxSize - 1, 0, BoxSize, BoxSize, Color.BLACK);
-        Sprites["box"].Bitmap.FillRect(Size.Width - MousePadding * 2 - BoxSize, 1, BoxSize - 2, BoxSize - 2, CornerColor);
-        Sprites["box"].Bitmap.DrawRect(0, Size.Height - MousePadding * 2 - BoxSize - 1, BoxSize, BoxSize, Color.BLACK);
-        Sprites["box"].Bitmap.FillRect(1, Size.Height - MousePadding * 2 - BoxSize, BoxSize - 2, BoxSize - 2, CornerColor);
-        Sprites["box"].Bitmap.DrawRect(Size.Width - MousePadding * 2 - BoxSize - 1, Size.Height - MousePadding * 2 - BoxSize - 1, BoxSize, BoxSize, Color.BLACK);
-		Sprites["box"].Bitmap.FillRect(Size.Width - MousePadding * 2 - BoxSize, Size.Height - MousePadding * 2 - BoxSize, BoxSize - 2, BoxSize - 2, CornerColor);
-		Sprites["box"].Bitmap.Lock();
+		if (!Redraw && !((Hovering || Pressing) && Sprites["_box"].Bitmap == null)) return;
+		Sprites["_box"].Bitmap?.Dispose();
+		Sprites["_box"].Bitmap = new Bitmap(Size.Width - MousePadding * 2, Size.Height - MousePadding * 2);
+		Sprites["_box"].Bitmap.Unlock();
+		Sprites["_box"].Bitmap.DrawRect(LinePos, LinePos, Size.Width - MousePadding * 2 - LinePos * 2 - 1, Size.Height - MousePadding * 2 - LinePos * 2 - 1, LineColor);
+		Sprites["_box"].Bitmap.DrawRect(0, 0, BoxSize, BoxSize, Color.BLACK);
+		Sprites["_box"].Bitmap.FillRect(1, 1, BoxSize - 2, BoxSize - 2, CornerColor);
+        Sprites["_box"].Bitmap.DrawRect(Size.Width - MousePadding * 2 - BoxSize - 1, 0, BoxSize, BoxSize, Color.BLACK);
+        Sprites["_box"].Bitmap.FillRect(Size.Width - MousePadding * 2 - BoxSize, 1, BoxSize - 2, BoxSize - 2, CornerColor);
+        Sprites["_box"].Bitmap.DrawRect(0, Size.Height - MousePadding * 2 - BoxSize - 1, BoxSize, BoxSize, Color.BLACK);
+        Sprites["_box"].Bitmap.FillRect(1, Size.Height - MousePadding * 2 - BoxSize, BoxSize - 2, BoxSize - 2, CornerColor);
+        Sprites["_box"].Bitmap.DrawRect(Size.Width - MousePadding * 2 - BoxSize - 1, Size.Height - MousePadding * 2 - BoxSize - 1, BoxSize, BoxSize, Color.BLACK);
+		Sprites["_box"].Bitmap.FillRect(Size.Width - MousePadding * 2 - BoxSize, Size.Height - MousePadding * 2 - BoxSize, BoxSize - 2, BoxSize - 2, CornerColor);
+		Sprites["_box"].Bitmap.Lock();
 	}
 }
 

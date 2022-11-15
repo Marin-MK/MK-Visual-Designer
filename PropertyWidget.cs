@@ -276,7 +276,7 @@ public class FontPropertyWidget : PropertyWidget
 	void SetAvailableFonts()
 	{
         List<ListItem> Items = new List<ListItem>();
-        foreach ((string alias, Font f) in Fonts.AllFonts)
+        foreach ((string alias, Font f, _) in Fonts.AllFonts)
         {
 			Items.Add(new ListItem(alias, f));
         }

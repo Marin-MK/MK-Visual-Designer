@@ -112,6 +112,8 @@ public class Program
         else if (Type == "label") t = typeof(LabelWidgetData);
         else if (Type == "list") t = typeof(ListWidgetData);
         else if (Type == "container") t = typeof(WidgetData);
+        else if (Type == "textbox") t = typeof(TextBoxWidgetData);
+        else if (Type == "numericbox") t = typeof(NumericBoxWidgetData);
         else if (Type == "window") t = typeof(WindowData);
         else throw new Exception($"Unknown data type '{Type}'.");
         dat = (WidgetData) Activator.CreateInstance(t, Dict);
@@ -126,6 +128,8 @@ public class Program
         else if (Widget is DesignButton) t = typeof(ButtonWidgetData);
         else if (Widget is DesignLabel) t = typeof(LabelWidgetData);
         else if (Widget is DesignListBox) t = typeof(ListWidgetData);
+        else if (Widget is DesignTextBox) t = typeof(TextBoxWidgetData);
+        else if (Widget is DesignNumericBox) t = typeof(NumericBoxWidgetData);
         else if (Widget.GetType() == typeof(DesignWidget)) t = typeof(WidgetData);
         else throw new Exception($"Unknown widget type '{Widget.GetType().Name}'.");
         dat = (WidgetData) Activator.CreateInstance(t, Widget);
@@ -140,6 +144,8 @@ public class Program
         else if (Data.Type == "label") t = typeof(DesignLabel);
         else if (Data.Type == "list") t = typeof(DesignListBox);
         else if (Data.Type == "container") t = typeof(DesignWidget);
+        else if (Data.Type == "textbox") t = typeof(DesignTextBox);
+        else if (Data.Type == "numericbox") t = typeof(DesignNumericBox);
         else throw new Exception($"Unknown data type '{Data.Type}'.");
         if (t == typeof(DesignWidget)) w = (DesignWidget) Activator.CreateInstance(t, Parent, null);
         else w = (DesignWidget) Activator.CreateInstance(t, Parent);
@@ -152,7 +158,7 @@ public class Program
         DesignButton.CreateFadeCache();
     }
 
-    public static void Undo(bool Internal = false)
+    public static void Undo()
     {
         if (UndoList.Count > 0 && !Input.TextInputActive())
         {
@@ -262,10 +268,8 @@ public class Program
             WindowData WindowData = JSONToData(json);
             ClearProject();
             DesignWindow.Name = WindowData.Name;
-            DesignWindow.SetTitle(WindowData.Title);
             DesignWindow.SetSize(WindowData.Size);
-            DesignWindow.SetFullscreen(WindowData.Fullscreen);
-            DesignWindow.SetIsPopup(WindowData.IsPopup);
+            WindowData.SetWidget(DesignWindow);
             WindowData.Widgets.ForEach(data =>
             {
                 WidgetFromData(DesignWindow, data);
@@ -332,7 +336,31 @@ public class Program
         Callback();
     }
 
-    public static void ExportAsPseudoCode() { }
+    public static string GeneratePseudoCode()
+    {
+        WindowData WindowData = (WindowData) WidgetToData(DesignWindow);
+        CodeExporter ce = new CodeExporter();
+        ce.ExportWindow(WindowData);
+        return ce.ToString();
+    }
+
+    public static void ExportAsPseudoCode(string? Filename = null)
+    {
+        string code = GeneratePseudoCode();
+        Filename = "C:/Users/m3rei/Desktop/TestWindow.cs";
+        if (string.IsNullOrEmpty(Filename))
+        {
+            OpenFileDialog ofd = new OpenFileDialog();
+            ofd.SetTitle("Save Code File");
+            ofd.SetFilter(new FileFilter("C# Script", "cs"));
+            ofd.SetInitialDirectory(ofd.DefaultFolder + "/" + DesignWindow.Name);
+            Filename = ofd.SaveFile();
+        }
+        if (!string.IsNullOrEmpty(Filename))
+        {
+            File.WriteAllText(Filename, code);
+        }
+    }
 
     public static void Exit(bool PromptSave)
     {

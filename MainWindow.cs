@@ -5,6 +5,8 @@ namespace VisualDesigner;
 
 public class MainWindow : UIWindow
 {
+	public Grid MainGrid;
+
 	DesignWindow DesignWindow;
 
 	public MainWindow() : base(false, true)
@@ -16,10 +18,11 @@ public class MainWindow : UIWindow
 
 		Container MainContainer = new Container(UI);
 
-		Grid MainGrid = new Grid(UI);
+		MainGrid = new Grid(UI);
 		MainGrid.SetDocked(true);
 		MainGrid.SetColumns(
-			new GridSize(366, Unit.Pixels),
+			new GridSize(420, Unit.Pixels),
+			new GridSize(ParameterPanel.DragWidth, Unit.Pixels),
 			new GridSize(1)
 		);
 		MainGrid.SetRows(
@@ -29,14 +32,14 @@ public class MainWindow : UIWindow
 		);
 
 		MenuBar MainMenuBar = new MenuBar(MainGrid);
-		MainMenuBar.SetGridColumn(0, 1);
+		MainMenuBar.SetGridColumn(0, 2);
 		MainMenuBar.SetBackgroundColor(10, 23, 37);
 		MainMenuBar.SetItems(MenuBarItemProvider.GetItems());
 		MainMenuBar.RemoveShortcuts();
 
 		Container Seperator = new Container(MainGrid);
 		Seperator.SetGridRow(1);
-		Seperator.SetGridColumn(0, 1);
+		Seperator.SetGridColumn(0, 2);
 		Seperator.SetBackgroundColor(79, 108, 159);
 
 		ParameterPanel Panel = new ParameterPanel(MainGrid);
@@ -45,7 +48,7 @@ public class MainWindow : UIWindow
 
 		Container DesignContainer = new Container(MainGrid);
 		DesignContainer.SetGridRow(2);
-		DesignContainer.SetGridColumn(1);
+		DesignContainer.SetGridColumn(2);
 		Program.DesignContainer = DesignContainer;
 
 		DesignWindow = new DesignWindow(DesignContainer);

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace VisualDesigner;
 
@@ -12,7 +13,12 @@ public class DesignWindow : DesignWidget
     public string Title { get; protected set; } = "Unnamed Window";
     public bool Fullscreen { get; protected set; } = false;
     public bool IsPopup { get; protected set; } = true;
+    public bool HasOKButton { get; protected set; } = true;
+    public bool HasCancelButton { get; protected set; } = true;
+    public List<string> OtherButtons { get; protected set; } = new List<string>();
     public int WindowEdges = 7;
+
+    List<ButtonDrawing> ButtonDrawings = new List<ButtonDrawing>();
 
     public DesignWidget HoveringWidget;
     public List<DesignWidget> SelectedWidgets = new List<DesignWidget>();
@@ -57,9 +63,43 @@ public class DesignWindow : DesignWidget
         this.Properties.AddRange(new List<Property>()
         {
             TitleProperty,
-            new Property("Fullscreen", PropertyType.Boolean, () => this.Fullscreen, e => SetFullscreen((bool) e)),
-            new Property("Is Popup", PropertyType.Boolean, () => this.IsPopup, e => SetIsPopup((bool) e))
+            new Property("Fullscreen", PropertyType.Boolean, () => this.Fullscreen, e =>
+            {
+                bool OldFullscreen = Fullscreen;
+                SetFullscreen((bool) e);
+                if (OldFullscreen != Fullscreen) Undo.GenericUndoAction<bool>.Register(this, "SetFullscreen", OldFullscreen, Fullscreen, true);
+            }),
+
+            new Property("Is Popup", PropertyType.Boolean, () => this.IsPopup, e =>
+            {
+                bool OldIsPopup = IsPopup;
+                SetIsPopup((bool) e);
+                if (OldIsPopup != IsPopup) Undo.GenericUndoAction<bool>.Register(this, "SetIsPopup", OldIsPopup, IsPopup, true);
+            }),
+
+            new Property("Has OK Button", PropertyType.Boolean, () => HasOKButton, e =>
+            {
+                bool OldHasOKButton = HasOKButton;
+                SetHasOKButton((bool) e);
+                if (OldHasOKButton != HasOKButton) Undo.GenericUndoAction<bool>.Register(this, "SetHasOKButton", OldHasOKButton, HasOKButton, true);
+            }),
+
+            new Property("Has Cancel Button", PropertyType.Boolean, () => HasCancelButton, e =>
+            {
+                bool OldHasCancelButton = HasCancelButton;
+                SetHasCancelButton((bool) e);
+                if (OldHasCancelButton != HasCancelButton) Undo.GenericUndoAction<bool>.Register(this, "SetHasCancelButton", OldHasCancelButton, HasCancelButton, true);
+            }),
+
+            new Property("Other Buttons", PropertyType.List, () => OtherButtons, e =>
+            {
+                List<string> OldOtherButtons = OtherButtons;
+                SetOtherButtons((List<string>) e);
+                if (!OldOtherButtons.Equals(OtherButtons)) Undo.GenericUndoAction<List<string>>.Register(this, "SetOtherButtons", OldOtherButtons, OtherButtons, false);
+            })
         });
+
+        this.RedrawButtons();
     }
 
     public void SetTitle(string Title)
@@ -131,6 +171,61 @@ public class DesignWindow : DesignWidget
             }
             Program.ParameterPanel.Redraw();
             Redraw();
+        }
+    }
+
+    public void SetHasOKButton(bool HasOKButton)
+    {
+        if (this.HasOKButton != HasOKButton)
+        {
+            this.HasOKButton = HasOKButton;
+            this.RedrawButtons();
+        }
+    }
+
+    public void SetHasCancelButton(bool HasCancelButton)
+    {
+        if (this.HasCancelButton != HasCancelButton)
+        {
+            this.HasCancelButton = HasCancelButton;
+            this.RedrawButtons();
+        }
+    }
+
+    public void SetOtherButtons(List<string> OtherButtons)
+    {
+        if (!this.OtherButtons.Equals(OtherButtons))
+        {
+            this.OtherButtons = OtherButtons;
+            this.RedrawButtons();
+        }
+    }
+
+    private void RedrawButtons()
+    {
+        while (ButtonDrawings.Count > 0)
+        {
+            ButtonDrawings[0].Dispose();
+            ButtonDrawings.RemoveAt(0);
+        }
+        if (HasCancelButton) CreateButton("Cancel");
+        if (HasOKButton) CreateButton("OK");
+        foreach (string Button in OtherButtons)
+        {
+            CreateButton(Button);
+        }
+
+        void CreateButton(string Text)
+        {
+            ButtonDrawing b = new ButtonDrawing(this);
+            b.SetBottomDocked(true);
+            b.SetRightDocked(true);
+            int padr = 4 + WidgetPadding + WindowEdges;
+            if (ButtonDrawings.Count > 0) padr += ButtonDrawings.Last().Padding.Right + ButtonDrawings.Last().Size.Width - 14;
+            int padd = 4 + WidgetPadding + WindowEdges;
+            b.SetPadding(0, 0, padr, padd);
+            b.SetText(Text);
+            ButtonDrawings.Add(b);
         }
     }
 

@@ -9,6 +9,7 @@ namespace VisualDesigner;
 public class DesignLabel : DesignWidget
 {
 	public override bool PasteAsChildren => false;
+
 	public string Text => Label.Text;
 	public Font Font => Label.Font;
 	public Color TextColor => Label.TextColor;

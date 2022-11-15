@@ -79,7 +79,7 @@ public class DesignWidget : Widget
 			{
 				string OldName = Name;
 				string NewName = (string) e;
-				DesignWidget? dw = Program.DesignWindow.GetWidgetByName(NewName);
+				DesignWidget? dw = this is DesignWindow ? null : Program.DesignWindow.GetWidgetByName(NewName);
 				if (dw != null)
 				{
 					new MessageBox("Error", $"A widget already exists with the name '{NewName}' (type '{dw.GetType().Name}').", ButtonType.OK, IconType.Error);
@@ -117,7 +117,11 @@ public class DesignWidget : Widget
 				if (RightDocked) UpdatePositionAndSizeIfDocked();
 				if (this is DesignWindow) ((DesignWindow) this).Center();
 				Size NewSize = this.Size;
-				if (!Resizing && !OldSize.Equals(NewSize)) Undo.GenericUndoAction<Size>.Register(this, "SetSize", OldSize, NewSize, true);
+				if (!Resizing && !OldSize.Equals(NewSize)) Undo.CallbackUndoAction.Register(this, IsRedo =>
+				{
+					SetSize(IsRedo ? NewSize : OldSize);
+					if (this is DesignWindow) ((DesignWindow) this).Center();
+				}, true);
 			}),
 
 			new Property("Height", PropertyType.Numeric, () => Size.Height - HeightAdd, e => 
@@ -129,7 +133,11 @@ public class DesignWidget : Widget
                 if (BottomDocked) UpdatePositionAndSizeIfDocked();
                 if (this is DesignWindow) ((DesignWindow) this).Center();
 				Size NewSize = this.Size;
-				if (!Resizing && !OldSize.Equals(NewSize)) Undo.GenericUndoAction<Size>.Register(this, "SetSize", OldSize, NewSize, true);
+				if (!Resizing && !OldSize.Equals(NewSize)) Undo.CallbackUndoAction.Register(this, IsRedo =>
+				{
+					SetSize(IsRedo ? NewSize : OldSize);
+					if (this is DesignWindow) ((DesignWindow) this).Center();
+				}, true);
 			}),
 
 			new Property("Auto-Resize", PropertyType.Boolean, () => AutoResize, e =>
@@ -269,20 +277,22 @@ public class DesignWidget : Widget
 						Items = new List<IMenuItem>()
 						{
 							new MenuItem("Button", _ => CreateSibling("button")),
-                            new MenuItem("Label", _ => CreateSibling("label")),
+							new MenuItem("Label", _ => CreateSibling("label")),
 							new MenuItem("List Box", _ => CreateSibling("list")),
-							new MenuItem("Text Box", _ => CreateSibling("textbox"))
-                        }
+							new MenuItem("Text Box", _ => CreateSibling("textbox")),
+							new MenuItem("Numeric Box", _ => CreateSibling("numericbox")),
+						}
 					},
 					new MenuItem("Child")
 					{
 						Items = new List<IMenuItem>()
 						{
 							new MenuItem("Button", _ => CreateChild("button")),
-                            new MenuItem("Label", _ => CreateChild("label")),
+							new MenuItem("Label", _ => CreateChild("label")),
 							new MenuItem("List Box", _ => CreateChild("list")),
-							new MenuItem("Text Box", _ => CreateChild("textbox"))
-                        }
+							new MenuItem("Text Box", _ => CreateChild("textbox")),
+							new MenuItem("Numeric Box", _ => CreateChild("numericbox"))
+						}
 					}
 				}
 			},
@@ -301,11 +311,11 @@ public class DesignWidget : Widget
 				Shortcut = "Ctrl+V",
 				OnClicked = _ => PasteSelection(PasteType.Smart)
 			},
-            new MenuItem("Paste as Child")
-            {
-                OnClicked = _ => PasteSelection(PasteType.Child)
-            },
-            new MenuItem("Paste as Sibling")
+			new MenuItem("Paste as Child")
+			{
+				OnClicked = _ => PasteSelection(PasteType.Child)
+			},
+			new MenuItem("Paste as Sibling")
 			{
 				OnClicked = _ => PasteSelection(PasteType.Sibling)
 			},
@@ -570,20 +580,17 @@ public class DesignWidget : Widget
 			w = new DesignListBox(Parent);
 			w.SetSize(160 + WidthAdd, 200 + HeightAdd);
 			((DesignListBox) w).SetFont(Fonts.Paragraph);
-			((DesignListBox) w).SetItems(new List<ListItem>()
-			{
-				new ListItem("Item One"),
-				new ListItem("Item Two"),
-				new ListItem("Item Three")
-			});
 		}
 		else if (Type == "textbox")
 		{
 			w = new DesignTextBox(Parent);
 			w.SetSize(100 + WidthAdd, 27 + HeightAdd);
-			((DesignTextBox) w).SetText("Blank");
 			((DesignTextBox) w).SetFont(Fonts.Paragraph);
-			((DesignTextBox) w).SetCaretHeight(14);
+		}
+		else if (Type == "numericbox")
+		{
+			w = new DesignNumericBox(Parent);
+			w.SetSize(66 + WidthAdd, 30 + HeightAdd);
 		}
 		else
 		{
@@ -1079,7 +1086,7 @@ public class DesignWidget : Widget
 				e.Handled = true;
 			}
 		}
-		else if (!Pressing && Program.DesignContainer.Mouse.Inside && LeftPressCounts) Input.SetCursor(CursorType.Arrow);
+		else if (!Pressing && Program.DesignContainer.Mouse.Inside && LeftPressCounts && !e.CursorHandled) Input.SetCursor(CursorType.Arrow);
 	}
 
 	public override void LeftMouseUp(MouseEventArgs e)
@@ -1089,13 +1096,19 @@ public class DesignWidget : Widget
         {
             if (Resizing)
 			{
+				Size OldSize = this.SizeOrigin;
+				Size NewSize = this.Size;
 				if (!Padding.Equals(PaddingOrigin))
 				{
 					Undo.GenericUndoAction<Size> SizeAction = null;
                     if (!Size.Equals(SizeOrigin)) SizeAction = Undo.GenericUndoAction<Size>.Create(this, "SetSize", this.SizeOrigin, this.Size, false);
                     Undo.GenericUndoAction<Padding>.Register(this, "SetPadding", this.PaddingOrigin, this.Padding, true, new List<Undo.BaseUndoAction>() { SizeAction });
 				}
-                else if (!Size.Equals(SizeOrigin)) Undo.GenericUndoAction<Size>.Register(this, "SetSize", this.SizeOrigin, this.Size, true);
+                else if (!Size.Equals(SizeOrigin)) Undo.CallbackUndoAction.Register(this, IsRedo =>
+				{
+					SetSize(IsRedo ? NewSize : OldSize);
+					if (this is DesignWindow) ((DesignWindow) this).Center();
+				}, true);
 				Redraw();
 				if (this is DesignWindow) Program.MainWindow.CenterDesignWindow();
 			}

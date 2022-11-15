@@ -9,24 +9,26 @@ namespace VisualDesigner;
 
 public class DesignTextBox : DesignWidget
 {
-    public string Text { get; protected set; } = "";
-    public int TextX { get; protected set; } = 0;
-    public int TextY { get; protected set; } = 0;
-    public int CaretY { get; protected set; } = 2;
-    public int CaretHeight { get; protected set; } = 13;
-    public Font Font { get; protected set; }
-    public Color TextColor { get; protected set; } = Color.WHITE;
-    public Color DisabledTextColor { get; protected set; } = new Color(141, 151, 163);
-    public Color CaretColor { get; protected set; } = Color.WHITE;
-    public Color FillerColor { get; protected set; } = new Color(0, 120, 215);
-    public bool ReadOnly { get; protected set; } = false;
-    public bool Enabled { get; protected set; } = true;
-    public bool NumericOnly { get; protected set; } = false;
-    public int DefaultNumericValue { get; protected set; } = 0;
-    public bool AllowMinusSigns { get; protected set; } = true;
-    public bool ShowDisabledText { get; protected set; } = false;
-    public bool DeselectOnEnterPressed { get; protected set; } = true;
+    public override bool PasteAsChildren => false;
+
+    public string Text => TextArea.Text;
+    public int TextX => TextArea.TextX;
+    public int TextY => TextArea.TextY;
+    public int CaretY => TextArea.CaretY;
+    public int? CaretHeight => TextArea.CaretHeight;
+    public Font Font => TextArea.Font;
+    public Color TextColor => TextArea.TextColor;
+    public Color DisabledTextColor => TextArea.DisabledTextColor;
+    public Color CaretColor => TextArea.CaretColor;
+    public Color FillerColor => TextArea.FillerColor;
+    public bool ReadOnly => TextArea.ReadOnly;
+    public bool NumericOnly => TextArea.NumericOnly;
+    public int DefaultNumericValue => TextArea.DefaultNumericValue;
+    public bool AllowMinusSigns => TextArea.AllowMinusSigns;
+    public bool ShowDisabledText => TextArea.ShowDisabledText;
+    public bool DeselectOnEnterPressed => TextArea.DeselectOnEnterPressed;
     public bool PopupStyle { get; protected set; } = true;
+    public bool Enabled { get; protected set; } = true;
 
     protected DesignTextArea TextArea;
 
@@ -38,10 +40,138 @@ public class DesignTextBox : DesignWidget
         TextArea = new DesignTextArea(this);
         TextArea.SetPosition(6 + WidgetPadding, 4 + WidgetPadding);
         TextArea.SetFont(Fonts.Paragraph);
-        TextArea.SetCaretColor(Color.WHITE);
 
         MinimumSize.Height += 27;
-        MaximumSize.Height = MinimumSize.Height;
+
+        this.Properties.AddRange(new List<Property>()
+        {
+            new Property("Text", PropertyType.Text, () => Text, e =>
+            {
+                string OldText = Text;
+                SetText((string) e);
+                if (OldText != Text) Undo.GenericUndoAction<string>.Register(this, "SetText", OldText, Text, true);
+            }),
+
+            new Property("Font", PropertyType.Font, () => Font, e =>
+            {
+                Font OldFont = Font;
+                SetFont((Font) e);
+                if (!OldFont.Equals(Font)) Undo.GenericUndoAction<Font>.Register(this, "SetFont", OldFont, Font, true);
+                Program.ParameterPanel.Refresh();
+            }),
+
+            new Property("Enabled", PropertyType.Boolean, () => Enabled, e =>
+            {
+                bool OldEnabled = Enabled;
+                SetEnabled((bool) e);
+                if (OldEnabled != Enabled) Undo.GenericUndoAction<bool>.Register(this, "SetEnabled", OldEnabled, Enabled, true);
+            }),
+
+            new Property("Numeric-only", PropertyType.Boolean, () => NumericOnly, e =>
+            {
+                bool OldNumericOnly = NumericOnly;
+                SetNumericOnly((bool) e);
+                if (OldNumericOnly != NumericOnly) Undo.GenericUndoAction<bool>.Register(this, "SetNumericOnly", OldNumericOnly, NumericOnly, true);
+            }),
+
+            new Property("Default Number", PropertyType.Numeric, () => DefaultNumericValue, e =>
+            {
+                int OldDefaultNumericValue = DefaultNumericValue;
+                SetDefaultNumericValue((int) e);
+                if (OldDefaultNumericValue != DefaultNumericValue) Undo.GenericUndoAction<int>.Register(this, "SetDefaultNumericValue", OldDefaultNumericValue, DefaultNumericValue, true);
+            }),
+
+            new Property("Allow Minus", PropertyType.Boolean, () => AllowMinusSigns, e =>
+            {
+                bool OldAllowMinusSigns = AllowMinusSigns;
+                SetAllowMinusSigns((bool) e);
+                if (OldAllowMinusSigns != AllowMinusSigns) Undo.GenericUndoAction<bool>.Register(this, "SetAllowMinusSigns", OldAllowMinusSigns, AllowMinusSigns, true);
+            }),
+
+            new Property("Read-only", PropertyType.Boolean, () => ReadOnly, e =>
+            {
+                bool OldReadOnly = ReadOnly;
+                SetReadOnly((bool) e);
+                if (OldReadOnly != ReadOnly) Undo.GenericUndoAction<bool>.Register(this, "SetReadOnly", OldReadOnly, ReadOnly, true);
+            }),
+
+            new Property("Text Color", PropertyType.Color, () => TextColor, e =>
+            {
+                Color OldTextColor = TextColor;
+                SetTextColor((Color) e);
+                if (!OldTextColor.Equals(TextColor)) Undo.GenericUndoAction<Color>.Register(this, "SetTextColor", OldTextColor, TextColor, true);
+            }),
+
+            new Property("Show Disabled Text", PropertyType.Boolean, () => ShowDisabledText, e =>
+            {
+                bool OldShowDisabledText = ShowDisabledText;
+                SetShowDisabledText((bool) e);
+                if (OldShowDisabledText != ShowDisabledText) Undo.GenericUndoAction<bool>.Register(this, "SetShowDisabledText", OldShowDisabledText, ShowDisabledText, true);
+            }),
+
+            new Property("Disabled Text Color", PropertyType.Color, () => DisabledTextColor, e =>
+            {
+                Color OldDisabledTextColor = DisabledTextColor;
+                SetDisabledTextColor((Color) e);
+                if (!OldDisabledTextColor.Equals(DisabledTextColor)) Undo.GenericUndoAction<Color>.Register(this, "SetDisabledTextColor", OldDisabledTextColor, DisabledTextColor, true);
+            }),
+
+            new Property("Deselect on Enter", PropertyType.Boolean, () => DeselectOnEnterPressed, e =>
+            {
+                bool OldDeselectOnEnterPressed = DeselectOnEnterPressed;
+                SetDeselectOnEnterPressed((bool) e);
+                if (OldDeselectOnEnterPressed != DeselectOnEnterPressed) Undo.GenericUndoAction<bool>.Register(this, "SetDeselectOnEnterPressed", OldDeselectOnEnterPressed, DeselectOnEnterPressed, true);
+            }),
+
+            new Property("Pop-up Style", PropertyType.Boolean, () => PopupStyle, e =>
+            {
+                bool OldPopupStyle = PopupStyle;
+                SetPopupStyle((bool) e);
+                if (OldPopupStyle != PopupStyle) Undo.GenericUndoAction<bool>.Register(this, "SetPopupStyle", OldPopupStyle, PopupStyle, true);
+            }),
+
+            new Property("Text X", PropertyType.Numeric, () => TextX, e =>
+            {
+                int OldTextX = TextX;
+                SetTextX((int) e);
+                if (OldTextX != TextX) Undo.GenericUndoAction<int>.Register(this, "SetTextX", OldTextX, TextX, true);
+            }),
+
+            new Property("Text Y", PropertyType.Numeric, () => TextY, e =>
+            {
+                int OldTextY = TextY;
+                SetTextY((int) e);
+                if (OldTextY != TextY) Undo.GenericUndoAction<int>.Register(this, "SetTextY", OldTextY, TextY, true);
+            }),
+
+            new Property("Caret Y", PropertyType.Numeric, () => CaretY, e =>
+            {
+                int OldCaretY = CaretY;
+                SetCaretY((int) e);
+                if (OldCaretY != CaretY) Undo.GenericUndoAction<int>.Register(this, "SetCaretY", OldCaretY, CaretY, true);
+            }),
+
+            new Property("Caret Height", PropertyType.Numeric, () => CaretHeight ?? -1, e =>
+            {
+                int? OldCaretHeight = CaretHeight;
+                SetCaretHeight((int) e == -1 ? null : (int) e);
+                if (OldCaretHeight != CaretHeight) Undo.GenericUndoAction<int?>.Register(this, "SetCaretHeight", OldCaretHeight, CaretHeight, true);
+            }),
+
+            new Property("Caret Color", PropertyType.Color, () => CaretColor, e =>
+            {
+                Color OldCaretColor = CaretColor;
+                SetCaretColor((Color) e);
+                if (!OldCaretColor.Equals(CaretColor)) Undo.GenericUndoAction<Color>.Register(this, "SetCaretColor", OldCaretColor, CaretColor, true);
+            }),
+
+            new Property("Filler Color", PropertyType.Color, () => FillerColor, e =>
+            {
+                Color OldFillerColor = FillerColor;
+                SetFillerColor((Color) e);
+                if (!OldFillerColor.Equals(FillerColor)) Undo.GenericUndoAction<Color>.Register(this, "SetFillerColor", OldFillerColor, FillerColor, true);
+            })
+        });
     }
 
     public void SetText(string Text)
@@ -64,7 +194,7 @@ public class DesignTextBox : DesignWidget
         TextArea.SetCaretY(CaretY);
     }
 
-    public void SetCaretHeight(int CaretHeight)
+    public void SetCaretHeight(int? CaretHeight)
     {
         TextArea.SetCaretHeight(CaretHeight);
     }
@@ -104,8 +234,8 @@ public class DesignTextBox : DesignWidget
         if (this.Enabled != Enabled)
         {
             this.Enabled = Enabled;
-            this.Redraw();
             this.TextArea.SetEnabled(Enabled);
+            this.Redraw();
         }
     }
 
@@ -207,7 +337,7 @@ public class DesignTextArea : Widget
     public int TextX { get; protected set; } = 0;
     public int TextY { get; protected set; } = 0;
     public int CaretY { get; protected set; } = 2;
-    public int CaretHeight { get; protected set; } = 13;
+    public int? CaretHeight { get; protected set; } = null;
     public Font Font { get; protected set; }
     public Color TextColor { get; protected set; } = Color.WHITE;
     public Color DisabledTextColor { get; protected set; } = new Color(141, 151, 163);
@@ -220,10 +350,6 @@ public class DesignTextArea : Widget
     public bool AllowMinusSigns { get; protected set; } = true;
     public bool ShowDisabledText { get; protected set; } = false;
     public bool DeselectOnEnterPressed { get; protected set; } = true;
-
-    int FrameNum;
-    int FrameCount;
-    int QuarterWidth;
 
     public DesignTextArea(IContainer Parent) : base(Parent)
     {
@@ -261,7 +387,7 @@ public class DesignTextArea : Widget
                 ((SolidBitmap) Sprites["filler"].Bitmap).SetSize(
                     // (f - 0.2) * 5 / 3d evaluates to 0 for f=0.2 and 1 for f=0.8
                     (int) Math.Round((f - 0.2) * 5 / 3d * Size.Width / 2),
-                    CaretHeight
+                    CaretHeight ?? Font.Size + 5
                 );
             }
             else if (Sprites["filler"].Visible && f > 0.75)
@@ -284,7 +410,7 @@ public class DesignTextArea : Widget
 
     public void SetCaretColor(Color CaretColor)
     {
-        if (this.CaretColor != CaretColor)
+        if (!this.CaretColor.Equals(CaretColor))
         {
             this.CaretColor = CaretColor;
             ((SolidBitmap) Sprites["caret"].Bitmap).SetColor(CaretColor);
@@ -294,7 +420,7 @@ public class DesignTextArea : Widget
 
     public void SetDisabledTextColor(Color DisabledTextColor)
     {
-        if (this.DisabledTextColor != DisabledTextColor)
+        if (!this.DisabledTextColor.Equals(DisabledTextColor))
         {
             this.DisabledTextColor = DisabledTextColor;
             this.DrawText();
@@ -303,7 +429,7 @@ public class DesignTextArea : Widget
 
     public void SetFillerColor(Color FillerColor)
     {
-        if (this.FillerColor != FillerColor)
+        if (!this.FillerColor.Equals(FillerColor))
         {
             this.FillerColor = FillerColor;
             ((SolidBitmap) Sprites["filler"].Bitmap).SetColor(FillerColor);
@@ -330,45 +456,59 @@ public class DesignTextArea : Widget
         }
     }
 
-    public void SetFont(Font f)
+    public void SetFont(Font Font)
     {
-        this.Font = f;
-        SetCaretHeight(this.Font.Size + 5);
-        DrawText();
+        if (this.Font == null && Font != null || !this.Font.Equals(Font))
+        {
+            this.Font = Font;
+            DrawText();
+        }
     }
 
     public void SetTextX(int TextX)
     {
-        this.TextX = TextX;
-        Sprites["text"].X = TextX;
+        if (this.TextX != TextX)
+        {
+            this.TextX = TextX;
+            Sprites["text"].X = TextX;
+        }
     }
 
     public void SetTextY(int TextY)
     {
-        this.TextY = TextY;
-        Sprites["text"].Y = TextY;
+        if (this.TextY != TextY)
+        {
+            this.TextY = TextY;
+            Sprites["text"].Y = TextY;
+        }
     }
 
     public void SetCaretY(int CaretY)
     {
-        this.CaretY = CaretY;
-        Sprites["caret"].Y = Sprites["filler"].Y = CaretY;
-        ShowCaretAnimation();
+        if (this.CaretY != CaretY)
+        {
+            this.CaretY = CaretY;
+            Sprites["caret"].Y = Sprites["filler"].Y = CaretY;
+            ShowCaretAnimation();
+        }
     }
 
-    public void SetCaretHeight(int CaretHeight)
+    public void SetCaretHeight(int? CaretHeight)
     {
-        this.CaretHeight = CaretHeight;
-        SolidBitmap caret = (SolidBitmap) Sprites["caret"].Bitmap;
-        caret.SetSize(1, CaretHeight);
-        SolidBitmap filler = (SolidBitmap) Sprites["filler"].Bitmap;
-        filler.SetSize(filler.BitmapWidth, CaretHeight);
-        ShowCaretAnimation();
+        if (this.CaretHeight != CaretHeight)
+        {
+            this.CaretHeight = CaretHeight;
+            SolidBitmap caret = (SolidBitmap) Sprites["caret"].Bitmap;
+            caret.SetSize(1, CaretHeight ?? Font.Size + 5);
+            SolidBitmap filler = (SolidBitmap) Sprites["filler"].Bitmap;
+            filler.SetSize(filler.BitmapWidth, CaretHeight ?? Font.Size + 5);
+            ShowCaretAnimation();
+        }
     }
 
     public void SetTextColor(Color TextColor)
     {
-        if (this.TextColor != TextColor)
+        if (!this.TextColor.Equals(TextColor))
         {
             this.TextColor = TextColor;
             DrawText();

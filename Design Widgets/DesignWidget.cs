@@ -842,7 +842,11 @@ public class DesignWidget : Widget
 			int padu = PaddingOrigin.Up;
 			int padr = PaddingOrigin.Right;
 			int padd = PaddingOrigin.Down;
-			if (ResizeMoveX)
+			if (MinimumSize.Width != -1 && SizeOrigin.Width + diffX < MinimumSize.Width) diffX = MinimumSize.Width - SizeOrigin.Width;
+			else if (MaximumSize.Width != -1 && SizeOrigin.Width + diffX > MaximumSize.Width) diffX = MaximumSize.Width - SizeOrigin.Width;
+            if (MinimumSize.Height != -1 && SizeOrigin.Height + diffY < MinimumSize.Height) diffY = MinimumSize.Height - SizeOrigin.Height;
+            else if (MaximumSize.Height != -1 && SizeOrigin.Height + diffY > MaximumSize.Height) diffY = MaximumSize.Height - SizeOrigin.Height;
+            if (ResizeMoveX)
 			{
 				if (HDocked)
 				{

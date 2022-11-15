@@ -39,6 +39,9 @@ public class DesignTextBox : DesignWidget
         TextArea.SetPosition(6 + WidgetPadding, 4 + WidgetPadding);
         TextArea.SetFont(Fonts.Paragraph);
         TextArea.SetCaretColor(Color.WHITE);
+
+        MinimumSize.Height += 27;
+        MaximumSize.Height = MinimumSize.Height;
     }
 
     public void SetText(string Text)

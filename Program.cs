@@ -36,6 +36,14 @@ public class Program
         Widget.DefaultContextMenuFont = Fonts.Paragraph;
 
         MainWindow win = new MainWindow();
+        win.OnClosing += e =>
+        {
+            if (UnsavedChanges)
+            {
+                e.Value = true;
+                EnsureSaved(() => Amethyst.Stop());
+            }
+        };
         Utilities.Initialize(true);
         Program.MainWindow = win;
 
@@ -303,7 +311,7 @@ public class Program
         decodl.PNGEncoder encoder = new decodl.PNGEncoder(Bitmap.PixelPointer, (uint)Bitmap.Width, (uint)Bitmap.Height);
         encoder.InvertData = Bitmap.RGBA8;
         encoder.ColorType = decodl.ColorTypes.RGBA;
-        encoder.AddCustomChunk("mKUI", json);
+        encoder.AddCustomChunk("mKUI", json, true);
         encoder.Encode(ProjectFile);
         DesignWindow.UpdateBounds();
         SelectedWidgets.ForEach(w => w.Select(true));
@@ -339,7 +347,15 @@ public class Program
 
     public static void EnsureSaved(Action Callback)
     {
-        Callback();
+        if (UnsavedChanges)
+        {
+            MessageBox win = new MessageBox("Warning", "Are you sure you want to continue? All unsaved changes will be lost.", ButtonType.YesNoCancel, IconType.Warning);
+            win.OnClosed += _ =>
+            {
+                if (win.Result == 0) Callback();
+            };
+        }
+        else Callback();
     }
 
     public static string GeneratePseudoCode()

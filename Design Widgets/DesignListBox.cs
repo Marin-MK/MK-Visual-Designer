@@ -61,9 +61,9 @@ public class DesignListBox : DesignWidget
             {
                 int OldSelectedIndex = SelectedIndex;
                 SetSelectedIndex((int) e);
-                if (OldSelectedIndex != SelectedIndex) Undo.CallbackUndoAction.Register(this, IsRedo =>
+                if (OldSelectedIndex != SelectedIndex) Undo.CallbackUndoAction.Register(this, (IsRedo, Widget) =>
                 {
-                    SetSelectedIndex(IsRedo ? SelectedIndex : OldSelectedIndex);
+                    ((DesignListBox) Widget).SetSelectedIndex(IsRedo ? SelectedIndex : OldSelectedIndex);
                 }, true);
             }),
 

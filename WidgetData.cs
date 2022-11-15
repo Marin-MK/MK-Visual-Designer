@@ -19,7 +19,7 @@ public class WidgetData
     public string ParentName;
     public string Name;
     public Point Position;
-    public Size Size;
+    public Size? Size;
     public Padding Padding;
     public bool HDocked;
     public bool VDocked;
@@ -48,9 +48,12 @@ public class WidgetData
     public WidgetData(Dictionary<string, object> Data)
     {
         this.Name = (string) Data["name"];
-        this.Size = new Size(0, 0);
-        this.Size.Width = (int) (long) ValueFromPath(Data, "size", "width");
-        this.Size.Height = (int) (long) ValueFromPath(Data, "size", "height");
+        if (Data.ContainsKey("size"))
+        {
+            this.Size = new Size(0, 0);
+            this.Size.Width = (int) (long) ValueFromPath(Data, "size", "width");
+            this.Size.Height = (int) (long) ValueFromPath(Data, "size", "height");
+        }
         List<Dictionary<string, object>>? WidgetData = null;
         if (Data["widgets"] is List<object>)
         {
@@ -178,7 +181,7 @@ public class WidgetData
         }
         else Widget.Name = this.Name;
         Widget.SetPosition(this.Position);
-        Widget.SetSize(this.Size);
+        if (Size != null) Widget.SetSize(this.Size);
         Widget.SetHDocked(this.HDocked);
         Widget.SetVDocked(this.VDocked);
         Widget.SetPadding(this.Padding);
@@ -199,7 +202,7 @@ public class WidgetData
         Dict.Add("name", Name);
         Dict.Add("parentname", ParentName);
         Dict.Add("position", CreateDict(("x", (long) Position.X), ("y", (long) Position.Y)));
-        Dict.Add("size", CreateDict(("width", (long) Size.Width), ("height", (long) Size.Height)));
+        if (Size != null) Dict.Add("size", CreateDict(("width", (long) Size.Width), ("height", (long) Size.Height)));
         Dict.Add("hdocked", HDocked);
         Dict.Add("vdocked", VDocked);
         Dict.Add("padding", CreateDict(("left", (long) Padding.Left), ("up", (long) Padding.Up), ("right", (long) Padding.Right), ("down", (long) Padding.Down)));
@@ -216,18 +219,21 @@ public class WidgetData
     {
         if (AutoResize) CE.WriteCode($"AutoResize = true");
         if (Position.X != 0 || Position.Y != 0) CE.WriteCode($"SetPosition({Position.X}, {Position.Y});");
-        if (HDocked && VDocked) CE.WriteCode($"SetDocked(true);");
-        else if (HDocked)
+        if (Size != null)
         {
-            CE.WriteCode($"SetHeight({Size.Height - DesignWidget.HeightAdd});");
-            CE.WriteCode($"SetHDocked(true);");
+            if (HDocked && VDocked) CE.WriteCode($"SetDocked(true);");
+            else if (HDocked)
+            {
+                CE.WriteCode($"SetHeight({Size.Height - DesignWidget.HeightAdd});");
+                CE.WriteCode($"SetHDocked(true);");
+            }
+            else if (VDocked)
+            {
+                CE.WriteCode($"SetWidth({Size.Width - DesignWidget.WidthAdd});");
+                CE.WriteCode($"SetVDocked(true);");
+            }
+            else if (Size.Width != 0 || Size.Height != 0) CE.WriteCode($"SetSize({Size.Width - DesignWidget.WidthAdd}, {Size.Height - DesignWidget.HeightAdd});");
         }
-        else if (VDocked)
-        {
-            CE.WriteCode($"SetWidth({Size.Width - DesignWidget.WidthAdd});");
-            CE.WriteCode($"SetVDocked(true);");
-        }
-        else if (Size.Width != 0 || Size.Height != 0) CE.WriteCode($"SetSize({Size.Width - DesignWidget.WidthAdd}, {Size.Height - DesignWidget.HeightAdd});");
         if (Padding.Left != 0 || Padding.Right != 0 || Padding.Up != 0 || Padding.Down != 0)
         {
             if (Padding.Left == Padding.Right && Padding.Right == Padding.Up && Padding.Up == Padding.Down) CE.WriteCode($"SetPadding({Padding.Left});");
@@ -724,6 +730,122 @@ public class NumericBoxWidgetData : WidgetData
         if (MinValue != -999999) CE.WriteCode($"SetMinValue({MinValue});");
         if (MaxValue != 999999) CE.WriteCode($"SetMaxValue({MaxValue});");
         if (Increment != 1) CE.WriteCode($"SetIncrement({Increment});");
+        if (!Enabled) CE.WriteCode("SetEnabled(false);");
+    }
+}
+
+public class CheckBoxWidgetData : WidgetData
+{
+    public override string Type => "checkbox";
+    public override string ClassName => "CheckBox";
+
+    public string Text;
+    public bool Checked;
+    public Font Font;
+    public bool Mirrored;
+    public bool Enabled;
+
+    public CheckBoxWidgetData(DesignCheckBox w) : base(w)
+    {
+        this.Size = null;
+        this.Text = w.Text;
+        this.Checked = w.Checked;
+        this.Font = w.Font;
+        this.Mirrored = w.Mirrored;
+        this.Enabled = w.Enabled;
+    }
+
+    public CheckBoxWidgetData(Dictionary<string, object> Data) : base(Data)
+    {
+        this.Text = (string)Data["text"];
+        this.Checked = (bool)Data["checked"];
+        this.Font = Font.Get((string)ValueFromPath(Data, "font", "name"), (int)(long)ValueFromPath(Data, "font", "size"));
+        this.Mirrored = (bool)Data["mirrored"];
+        this.Enabled = (bool)Data["enabled"];
+    }
+
+    public override void AddToDict(Dictionary<string, object> Dict)
+    {
+        Dict.Add("text", Text);
+        Dict.Add("checked", Checked);
+        Dict.Add("font", CreateDict(("name", Font.Name.Replace('\\', '/')), ("size", (long)Font.Size)));
+        Dict.Add("mirrored", Mirrored);
+        Dict.Add("enabled", Enabled);
+    }
+
+    public override void SetWidget(DesignWidget Widget)
+    {
+        base.SetWidget(Widget);
+        DesignCheckBox Box = (DesignCheckBox) Widget;
+        Box.SetText(Text);
+        Box.SetChecked(Checked);
+        Box.SetFont(Font);
+        Box.SetMirrored(Mirrored);
+        Box.SetEnabled(Enabled);
+    }
+
+    public override void WriteCode(CodeExporter CE)
+    {
+        base.WriteCode(CE);
+        if (!string.IsNullOrEmpty(Text)) CE.WriteCode($"SetText(\"{Text}\");");
+        if (Checked) CE.WriteCode($"SetChecked(true);");
+        CE.WriteCode($"SetFont({GetFontCode(Font)});");
+        if (Mirrored) CE.WriteCode($"SetMirrored(true);");
+        if (!Enabled) CE.WriteCode("SetEnabled(false);");
+    }
+}
+
+public class RadioBoxWidgetData : WidgetData
+{
+    public override string Type => "radiobox";
+    public override string ClassName => "RadioBox";
+
+    public string Text;
+    public bool Checked;
+    public Font Font;
+    public bool Enabled;
+
+    public RadioBoxWidgetData(DesignRadioBox w) : base(w)
+    {
+        this.Size = null;
+        this.Text = w.Text;
+        this.Checked = w.Checked;
+        this.Font = w.Font;
+        this.Enabled = w.Enabled;
+    }
+
+    public RadioBoxWidgetData(Dictionary<string, object> Data) : base(Data)
+    {
+        this.Text = (string)Data["text"];
+        this.Checked = (bool)Data["checked"];
+        this.Font = Font.Get((string)ValueFromPath(Data, "font", "name"), (int)(long)ValueFromPath(Data, "font", "size"));
+        this.Enabled = (bool)Data["enabled"];
+    }
+
+    public override void AddToDict(Dictionary<string, object> Dict)
+    {
+        Dict.Add("text", Text);
+        Dict.Add("checked", Checked);
+        Dict.Add("font", CreateDict(("name", Font.Name.Replace('\\', '/')), ("size", (long)Font.Size)));
+        Dict.Add("enabled", Enabled);
+    }
+
+    public override void SetWidget(DesignWidget Widget)
+    {
+        base.SetWidget(Widget);
+        DesignRadioBox Box = (DesignRadioBox) Widget;
+        Box.SetText(Text);
+        Box.SetChecked(Checked);
+        Box.SetFont(Font);
+        Box.SetEnabled(Enabled);
+    }
+
+    public override void WriteCode(CodeExporter CE)
+    {
+        base.WriteCode(CE);
+        if (!string.IsNullOrEmpty(Text)) CE.WriteCode($"SetText(\"{Text}\");");
+        if (Checked) CE.WriteCode($"SetChecked(true);");
+        CE.WriteCode($"SetFont({GetFontCode(Font)});");
         if (!Enabled) CE.WriteCode("SetEnabled(false);");
     }
 }

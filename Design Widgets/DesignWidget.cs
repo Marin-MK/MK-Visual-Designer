@@ -13,7 +13,7 @@ public class DesignWidget : Widget
 	public static int WidgetPadding = 10;
 	public static int WidthAdd = WidgetPadding * 2;
 	public static int HeightAdd = WidgetPadding * 2;
-	public static int SnapDifference = 12;
+	public static int SnapDifference = 8;
 
 	public virtual bool PasteAsChildren => true;
 
@@ -117,10 +117,10 @@ public class DesignWidget : Widget
 				if (RightDocked) UpdatePositionAndSizeIfDocked();
 				if (this is DesignWindow) ((DesignWindow) this).Center();
 				Size NewSize = this.Size;
-				if (!Resizing && !OldSize.Equals(NewSize)) Undo.CallbackUndoAction.Register(this, IsRedo =>
+				if (!Resizing && !OldSize.Equals(NewSize)) Undo.CallbackUndoAction.Register(this, (IsRedo, Widget) =>
 				{
-					SetSize(IsRedo ? NewSize : OldSize);
-					if (this is DesignWindow) ((DesignWindow) this).Center();
+					Widget.SetSize(IsRedo ? NewSize : OldSize);
+					if (Widget is DesignWindow) ((DesignWindow) Widget).Center();
 				}, true);
 			}),
 
@@ -133,10 +133,10 @@ public class DesignWidget : Widget
                 if (BottomDocked) UpdatePositionAndSizeIfDocked();
                 if (this is DesignWindow) ((DesignWindow) this).Center();
 				Size NewSize = this.Size;
-				if (!Resizing && !OldSize.Equals(NewSize)) Undo.CallbackUndoAction.Register(this, IsRedo =>
+				if (!Resizing && !OldSize.Equals(NewSize)) Undo.CallbackUndoAction.Register(this, (IsRedo, Widget) =>
 				{
-					SetSize(IsRedo ? NewSize : OldSize);
-					if (this is DesignWindow) ((DesignWindow) this).Center();
+					Widget.SetSize(IsRedo ? NewSize : OldSize);
+					if (Widget is DesignWindow) ((DesignWindow) Widget).Center();
 				}, true);
 			}),
 
@@ -145,10 +145,10 @@ public class DesignWidget : Widget
 				bool OldAutoResize = this.AutoResize;
 				this.AutoResize = (bool) e;
 				this.UpdateAutoScroll();
-				if (OldAutoResize != AutoResize) Undo.CallbackUndoAction.Register(this, v =>
+				if (OldAutoResize != AutoResize) Undo.CallbackUndoAction.Register(this, (IsRedo, Widget) =>
 				{
-					this.AutoResize = v;
-					this.UpdateAutoScroll();
+					Widget.AutoResize = IsRedo ? AutoResize : OldAutoResize;
+					Widget.UpdateAutoScroll();
 				}, true);
 			}),
 
@@ -281,6 +281,8 @@ public class DesignWidget : Widget
 							new MenuItem("List Box", _ => CreateSibling("list")),
 							new MenuItem("Text Box", _ => CreateSibling("textbox")),
 							new MenuItem("Numeric Box", _ => CreateSibling("numericbox")),
+							new MenuItem("Check Box", _ => CreateSibling("checkbox")),
+							new MenuItem("Radio Box", _ => CreateSibling("radiobox")),
 						}
 					},
 					new MenuItem("Child")
@@ -291,7 +293,9 @@ public class DesignWidget : Widget
 							new MenuItem("Label", _ => CreateChild("label")),
 							new MenuItem("List Box", _ => CreateChild("list")),
 							new MenuItem("Text Box", _ => CreateChild("textbox")),
-							new MenuItem("Numeric Box", _ => CreateChild("numericbox"))
+							new MenuItem("Numeric Box", _ => CreateChild("numericbox")),
+							new MenuItem("Check Box", _ => CreateChild("checkbox")),
+							new MenuItem("Radio Box", _ => CreateChild("radiobox")),
 						}
 					}
 				}
@@ -591,6 +595,18 @@ public class DesignWidget : Widget
 		{
 			w = new DesignNumericBox(Parent);
 			w.SetSize(66 + WidthAdd, 30 + HeightAdd);
+		}
+		else if (Type == "checkbox")
+		{
+			w = new DesignCheckBox(Parent);
+			((DesignCheckBox) w).SetText("Unnamed CheckBox");
+			w.SetHeight(16 + HeightAdd);
+		}
+		else if (Type == "radiobox")
+		{
+			w = new DesignRadioBox(Parent);
+			((DesignRadioBox) w).SetText("Unnamed RadioBox");
+			w.SetHeight(16 + HeightAdd);
 		}
 		else
 		{
@@ -1104,10 +1120,10 @@ public class DesignWidget : Widget
                     if (!Size.Equals(SizeOrigin)) SizeAction = Undo.GenericUndoAction<Size>.Create(this, "SetSize", this.SizeOrigin, this.Size, false);
                     Undo.GenericUndoAction<Padding>.Register(this, "SetPadding", this.PaddingOrigin, this.Padding, true, new List<Undo.BaseUndoAction>() { SizeAction });
 				}
-                else if (!Size.Equals(SizeOrigin)) Undo.CallbackUndoAction.Register(this, IsRedo =>
+                else if (!Size.Equals(SizeOrigin)) Undo.CallbackUndoAction.Register(this, (IsRedo, Widget) =>
 				{
-					SetSize(IsRedo ? NewSize : OldSize);
-					if (this is DesignWindow) ((DesignWindow) this).Center();
+					Widget.SetSize(IsRedo ? NewSize : OldSize);
+					if (Widget is DesignWindow) ((DesignWindow) Widget).Center();
 				}, true);
 				Redraw();
 				if (this is DesignWindow) Program.MainWindow.CenterDesignWindow();

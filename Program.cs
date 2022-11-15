@@ -114,6 +114,8 @@ public class Program
         else if (Type == "container") t = typeof(WidgetData);
         else if (Type == "textbox") t = typeof(TextBoxWidgetData);
         else if (Type == "numericbox") t = typeof(NumericBoxWidgetData);
+        else if (Type == "checkbox") t = typeof(CheckBoxWidgetData);
+        else if (Type == "radiobox") t = typeof(RadioBoxWidgetData);
         else if (Type == "window") t = typeof(WindowData);
         else throw new Exception($"Unknown data type '{Type}'.");
         dat = (WidgetData) Activator.CreateInstance(t, Dict);
@@ -130,6 +132,8 @@ public class Program
         else if (Widget is DesignListBox) t = typeof(ListWidgetData);
         else if (Widget is DesignTextBox) t = typeof(TextBoxWidgetData);
         else if (Widget is DesignNumericBox) t = typeof(NumericBoxWidgetData);
+        else if (Widget is DesignCheckBox) t = typeof(CheckBoxWidgetData);
+        else if (Widget is DesignRadioBox) t = typeof(RadioBoxWidgetData);
         else if (Widget.GetType() == typeof(DesignWidget)) t = typeof(WidgetData);
         else throw new Exception($"Unknown widget type '{Widget.GetType().Name}'.");
         dat = (WidgetData) Activator.CreateInstance(t, Widget);
@@ -146,6 +150,8 @@ public class Program
         else if (Data.Type == "container") t = typeof(DesignWidget);
         else if (Data.Type == "textbox") t = typeof(DesignTextBox);
         else if (Data.Type == "numericbox") t = typeof(DesignNumericBox);
+        else if (Data.Type == "checkbox") t = typeof(DesignCheckBox);
+        else if (Data.Type == "radiobox") t = typeof(DesignRadioBox);
         else throw new Exception($"Unknown data type '{Data.Type}'.");
         if (t == typeof(DesignWidget)) w = (DesignWidget) Activator.CreateInstance(t, Parent, null);
         else w = (DesignWidget) Activator.CreateInstance(t, Parent);

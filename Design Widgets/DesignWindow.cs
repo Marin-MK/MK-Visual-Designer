@@ -128,9 +128,9 @@ public class DesignWindow : DesignWidget
                     Undo.GenericUndoAction<Point>.Create(this, "SetPosition", OldPosition, this.Position, false),
                     Undo.GenericUndoAction<Size>.Create(this, "SetSize", OldSize, this.Size, false)
                 };
-                Undo.CallbackUndoAction.Register(this, IsRedo =>
+                Undo.CallbackUndoAction.Register(this, (IsRedo, Widget) =>
                 {
-                    this.Fullscreen = IsRedo;
+                    ((DesignWindow) Widget).Fullscreen = IsRedo;
                 }, true, Actions);
             }
             else
@@ -146,9 +146,9 @@ public class DesignWindow : DesignWidget
                     Undo.GenericUndoAction<Point>.Create(this, "SetPosition", OldPosition, this.Position, false),
                     Undo.GenericUndoAction<Size>.Create(this, "SetSize", OldSize, this.Size, false)
                 };
-                Undo.CallbackUndoAction.Register(this, IsRedo =>
+                Undo.CallbackUndoAction.Register(this, (IsRedo, Widget) =>
                 {
-                    this.Fullscreen = !IsRedo;
+                    ((DesignWindow) Widget).Fullscreen = !IsRedo;
                 }, true, Actions);
             }
         }

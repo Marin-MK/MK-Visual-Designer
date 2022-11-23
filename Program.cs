@@ -29,6 +29,7 @@ public class Program
     {
         string? ProjectFile = Args.Length > 0 ? Args[0] : null;
         if (ProjectFile != null) Path.GetFullPath(ProjectFile);
+
         Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
         Config.Setup();
         Amethyst.Start(Config.PathInfo, false, true);
@@ -51,7 +52,7 @@ public class Program
         {
             OpenProject(ProjectFile);
         }
-        else OpenProject("example.png");
+        else if (File.Exists("example.png")) OpenProject("example.png");
 
         Graphics.Update();
         win.UI.Widgets.ForEach(e => e.UpdateBounds());

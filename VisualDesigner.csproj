@@ -9,6 +9,7 @@
     <Configurations>Debug;Release</Configurations>
     <ApplicationIcon>logo-64x64.ico</ApplicationIcon>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <Version>1.2.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

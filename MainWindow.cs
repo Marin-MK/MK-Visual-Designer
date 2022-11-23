@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Reflection;
 
 namespace VisualDesigner;
 
@@ -12,8 +14,10 @@ public class MainWindow : UIWindow
 	public MainWindow() : base(false, true)
 	{
 		SetBackgroundColor(28, 50, 73);
-		SetText("RPG Studio MK Window Designer");
-		SetIcon("assets/img/logo.png");
+        Assembly assembly = Assembly.GetExecutingAssembly();
+        string Version = FileVersionInfo.GetVersionInfo(assembly.Location).ProductVersion;
+		SetText($"RPG Studio MK Window Designer {Version}");
+        SetIcon("assets/img/logo.png");
 		Maximize();
 
 		Container MainContainer = new Container(UI);

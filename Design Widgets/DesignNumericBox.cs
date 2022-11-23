@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace VisualDesigner;
 
-[WidgetTypeAndName(typeof(NumericBoxWidgetData), "numericbox")]
+[WidgetTypeAndName(typeof(NumericBoxData), "numericbox")]
 public class DesignNumericBox : DesignWidget
 {
     public override bool PasteAsChildren => false;

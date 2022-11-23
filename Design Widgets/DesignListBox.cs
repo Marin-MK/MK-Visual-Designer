@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace VisualDesigner;
 
-[WidgetTypeAndName(typeof(ListWidgetData), "list")]
+[WidgetTypeAndName(typeof(ListBoxData), "list")]
 public class DesignListBox : DesignWidget
 {
     public override bool PasteAsChildren => false;

@@ -285,6 +285,7 @@ public class DesignWidget : Widget
 							new MenuItem("Check Box", _ => CreateSibling("checkbox")),
 							new MenuItem("Radio Box", _ => CreateSibling("radiobox")),
 							new MenuItem("Dropdown Box", _ => CreateSibling("dropdown")),
+							new MenuItem("Browser Box", _ => CreateSibling("browserbox"))
 						}
 					},
 					new MenuItem("Child")
@@ -299,6 +300,7 @@ public class DesignWidget : Widget
 							new MenuItem("Check Box", _ => CreateChild("checkbox")),
 							new MenuItem("Radio Box", _ => CreateChild("radiobox")),
 							new MenuItem("Dropdown Box", _ => CreateChild("dropdown")),
+							new MenuItem("Browser Box", _ => CreateChild("browserbox"))
 						}
 					}
 				}
@@ -615,6 +617,11 @@ public class DesignWidget : Widget
 		{
 			w = new DesignDropdownBox(Parent);
 			w.SetSize(100 + WidthAdd, 24 + HeightAdd);
+		}
+		else if (Type == "browserbox")
+		{
+			w = new DesignBrowserBox(Parent);
+			w.SetSize(100 + WidthAdd, 25 + HeightAdd);
 		}
 		else
 		{

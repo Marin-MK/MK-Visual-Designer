@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace VisualDesigner;
 
-[WidgetTypeAndName(typeof(DropdownBoxWidgetData), "dropdownbox")]
+[WidgetTypeAndName(typeof(DropdownBoxData), "dropdownbox")]
 public class DesignDropdownBox : DesignWidget
 {
     public override bool PasteAsChildren => false;

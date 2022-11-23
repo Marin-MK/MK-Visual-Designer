@@ -304,7 +304,7 @@ public class WindowData : WidgetData
     }
 }
 
-public class ButtonWidgetData : WidgetData
+public class ButtonData : WidgetData
 {
     public override string ClassName => "Button";
     public string Text;
@@ -315,7 +315,7 @@ public class ButtonWidgetData : WidgetData
     public bool Enabled;
     public bool Repeatable;
 
-    public ButtonWidgetData(DesignButton w) : base(w)
+    public ButtonData(DesignButton w) : base(w)
     {
         this.Text = w.Text;
         this.Font = w.Font;
@@ -326,7 +326,7 @@ public class ButtonWidgetData : WidgetData
         this.Repeatable = w.Repeatable;
     }
 
-    public ButtonWidgetData(Dictionary<string, object> Data) : base(Data)
+    public ButtonData(Dictionary<string, object> Data) : base(Data)
     {
         this.Text = (string) Data["text"];
         this.Font = Font.Get((string) ValueFromPath(Data, "font", "name"), (int) (long) ValueFromPath(Data, "font", "size"));
@@ -374,7 +374,7 @@ public class ButtonWidgetData : WidgetData
     }
 }
 
-public class LabelWidgetData : WidgetData
+public class LabelData : WidgetData
 {
     public override string ClassName => "Label";
     public string Text;
@@ -384,7 +384,7 @@ public class LabelWidgetData : WidgetData
     public string LimitReplacementText;
     public DrawOptions DrawOptions;
 
-    public LabelWidgetData(DesignLabel w) : base(w)
+    public LabelData(DesignLabel w) : base(w)
     {
         this.Text = w.Text;
         this.Font = w.Font;
@@ -394,7 +394,7 @@ public class LabelWidgetData : WidgetData
         this.DrawOptions = w.DrawOptions;
     }
 
-    public LabelWidgetData(Dictionary<string, object> Data) : base(Data)
+    public LabelData(Dictionary<string, object> Data) : base(Data)
     {
         this.Text = (string) Data["text"];
         this.Font = Font.Get((string) ValueFromPath(Data, "font", "name"), (int) (long) ValueFromPath(Data, "font", "size"));
@@ -454,7 +454,7 @@ public class LabelWidgetData : WidgetData
     }
 }
 
-public class ListWidgetData : WidgetData
+public class ListBoxData : WidgetData
 {
     public override string ClassName => "ListBox";
     public override string[] Dependencies => new string[] { "System.Collections", "System.Collections.Generic" };
@@ -466,7 +466,7 @@ public class ListWidgetData : WidgetData
     public int SelectedIndex;
     public Color SelectedItemColor;
 
-    public ListWidgetData(DesignListBox w) : base(w)
+    public ListBoxData(DesignListBox w) : base(w)
     {
         this.Font = w.Font;
         this.LineHeight = w.LineHeight;
@@ -476,7 +476,7 @@ public class ListWidgetData : WidgetData
         this.SelectedItemColor = w.SelectedItemColor;
     }
 
-    public ListWidgetData(Dictionary<string, object> Data) : base(Data)
+    public ListBoxData(Dictionary<string, object> Data) : base(Data)
     {
         this.Font = Font.Get((string) ValueFromPath(Data, "font", "name"), (int) (long) ValueFromPath(Data, "font", "size"));
         this.LineHeight = (int) (long) Data["lineheight"];
@@ -530,7 +530,7 @@ public class ListWidgetData : WidgetData
     }
 }
 
-public class TextBoxWidgetData : WidgetData
+public class TextBoxData : WidgetData
 {
     public override string ClassName => "TextBox";
 
@@ -553,7 +553,7 @@ public class TextBoxWidgetData : WidgetData
     public bool PopupStyle;
     public bool Enabled;
 
-    public TextBoxWidgetData(DesignTextBox w) : base(w)
+    public TextBoxData(DesignTextBox w) : base(w)
     {
         this.Text = w.Text;
         this.TextX = w.TextX;
@@ -575,7 +575,7 @@ public class TextBoxWidgetData : WidgetData
         this.Enabled = w.Enabled;
     }
 
-    public TextBoxWidgetData(Dictionary<string, object> Data) : base(Data)
+    public TextBoxData(Dictionary<string, object> Data) : base(Data)
     {
         this.Text = (string)Data["text"];
         this.TextX = (int)(long)Data["textx"];
@@ -668,7 +668,7 @@ public class TextBoxWidgetData : WidgetData
     }
 }
 
-public class NumericBoxWidgetData : WidgetData
+public class NumericBoxData : WidgetData
 {
     public override string ClassName => "NumericBox";
 
@@ -678,7 +678,7 @@ public class NumericBoxWidgetData : WidgetData
     public int Increment;
     public bool Enabled;
 
-    public NumericBoxWidgetData(DesignNumericBox w) : base(w)
+    public NumericBoxData(DesignNumericBox w) : base(w)
     {
         this.Value = w.Value;
         this.MinValue = w.MinValue;
@@ -687,7 +687,7 @@ public class NumericBoxWidgetData : WidgetData
         this.Enabled = w.Enabled;
     }
 
-    public NumericBoxWidgetData(Dictionary<string, object> Data) : base(Data)
+    public NumericBoxData(Dictionary<string, object> Data) : base(Data)
     {
         this.Value = (int)(long)Data["value"];
         this.MinValue = (int)(long)Data["minvalue"];
@@ -727,7 +727,7 @@ public class NumericBoxWidgetData : WidgetData
     }
 }
 
-public class CheckBoxWidgetData : WidgetData
+public class CheckBoxData : WidgetData
 {
     public override string ClassName => "CheckBox";
 
@@ -737,7 +737,7 @@ public class CheckBoxWidgetData : WidgetData
     public bool Mirrored;
     public bool Enabled;
 
-    public CheckBoxWidgetData(DesignCheckBox w) : base(w)
+    public CheckBoxData(DesignCheckBox w) : base(w)
     {
         this.Size = null;
         this.Text = w.Text;
@@ -747,7 +747,7 @@ public class CheckBoxWidgetData : WidgetData
         this.Enabled = w.Enabled;
     }
 
-    public CheckBoxWidgetData(Dictionary<string, object> Data) : base(Data)
+    public CheckBoxData(Dictionary<string, object> Data) : base(Data)
     {
         this.Text = (string)Data["text"];
         this.Checked = (bool)Data["checked"];
@@ -787,7 +787,7 @@ public class CheckBoxWidgetData : WidgetData
     }
 }
 
-public class RadioBoxWidgetData : WidgetData
+public class RadioBoxData : WidgetData
 {
     public override string ClassName => "RadioBox";
 
@@ -796,7 +796,7 @@ public class RadioBoxWidgetData : WidgetData
     public Font Font;
     public bool Enabled;
 
-    public RadioBoxWidgetData(DesignRadioBox w) : base(w)
+    public RadioBoxData(DesignRadioBox w) : base(w)
     {
         this.Size = null;
         this.Text = w.Text;
@@ -805,7 +805,7 @@ public class RadioBoxWidgetData : WidgetData
         this.Enabled = w.Enabled;
     }
 
-    public RadioBoxWidgetData(Dictionary<string, object> Data) : base(Data)
+    public RadioBoxData(Dictionary<string, object> Data) : base(Data)
     {
         this.Text = (string)Data["text"];
         this.Checked = (bool)Data["checked"];
@@ -841,7 +841,7 @@ public class RadioBoxWidgetData : WidgetData
     }
 }
 
-public class DropdownBoxWidgetData : WidgetData
+public class DropdownBoxData : WidgetData
 {
     public override string ClassName => "DropdownBox";
 
@@ -850,7 +850,7 @@ public class DropdownBoxWidgetData : WidgetData
     public bool ReadOnly;
     public bool Enabled;
 
-    public DropdownBoxWidgetData(DesignDropdownBox w) : base(w)
+    public DropdownBoxData(DesignDropdownBox w) : base(w)
     {
         this.Items = w.Items.Select(x => x.Name).ToList();
         this.SelectedIndex = w.SelectedIndex;
@@ -858,7 +858,7 @@ public class DropdownBoxWidgetData : WidgetData
         this.Enabled = w.Enabled;
     }
 
-    public DropdownBoxWidgetData(Dictionary<string, object> Data) : base(Data)
+    public DropdownBoxData(Dictionary<string, object> Data) : base(Data)
     {
         if (Data["items"] is List<string>) this.Items = ((List<string>) Data["items"]);
         else this.Items = ((List<object>) Data["items"]).Select(o => o.ToString()).ToList();
@@ -899,6 +899,65 @@ public class DropdownBoxWidgetData : WidgetData
             CE.WriteCode("});", false);
         }
         if (SelectedIndex != -1) CE.WriteCode($"SetSelectedIndex({SelectedIndex});");
+        if (!ReadOnly) CE.WriteCode($"SetReadOnly(false);");
+        if (!Enabled) CE.WriteCode("SetEnabled(false);");
+    }
+}
+
+public class BrowserBoxData : WidgetData
+{
+    public override string ClassName => "BrowserBox";
+
+    public string Text;
+    public Font Font;
+    public Color TextColor;
+    public bool ReadOnly;
+    public bool Enabled;
+
+    public BrowserBoxData(DesignBrowserBox w) : base(w)
+    {
+        this.Text = w.Text;
+        this.Font = w.Font;
+        this.TextColor = w.TextColor;
+        this.ReadOnly = w.ReadOnly;
+        this.Enabled = w.Enabled;
+    }
+    
+    public BrowserBoxData(Dictionary<string, object> Data) : base(Data)
+    {
+        this.Text = (string)Data["text"];
+        this.Font = Font.Get((string)ValueFromPath(Data, "font", "name"), (int)(long)ValueFromPath(Data, "font", "size"));
+        this.TextColor = ColorFromPath(Data, "textcolor");
+        this.ReadOnly = (bool)Data["readonly"];
+        this.Enabled = (bool)Data["enabled"];
+    }
+    
+    public override void AddToDict(Dictionary<string, object> Dict)
+    {
+        Dict.Add("text", Text);
+        Dict.Add("font", CreateDict(("name", Font.Name.Replace('\\', '/')), ("size", (long)Font.Size)));
+        Dict.Add("textcolor", CreateColor(TextColor));
+        Dict.Add("readonly", ReadOnly);
+        Dict.Add("enabled", Enabled);
+    }
+    
+    public override void SetWidget(DesignWidget Widget)
+    {
+        base.SetWidget(Widget);
+        DesignBrowserBox b = (DesignBrowserBox) Widget;
+        b.SetText(Text);
+        b.SetFont(Font);
+        b.SetTextColor(TextColor);
+        b.SetReadOnly(ReadOnly);
+        b.SetEnabled(Enabled);
+    }
+    
+    public override void WriteCode(CodeExporter CE)
+    {
+        base.WriteCode(CE);
+        if (!string.IsNullOrEmpty(Text)) CE.WriteCode($"SetText(\"{Text}\");");
+        CE.WriteCode($"SetFont({GetFontCode(Font)});");
+        if (!TextColor.Equals(Color.WHITE)) CE.WriteCode($"SetTextColor({GetColorCode(TextColor)});");
         if (!ReadOnly) CE.WriteCode($"SetReadOnly(false);");
         if (!Enabled) CE.WriteCode("SetEnabled(false);");
     }

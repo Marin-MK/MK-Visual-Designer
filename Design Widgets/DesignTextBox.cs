@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace VisualDesigner;
 
-[WidgetTypeAndName(typeof(TextBoxWidgetData), "textbox")]
+[WidgetTypeAndName(typeof(TextBoxData), "textbox")]
 public class DesignTextBox : DesignWidget
 {
     public override bool PasteAsChildren => false;

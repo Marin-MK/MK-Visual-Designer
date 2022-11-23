@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace VisualDesigner;
 
-[WidgetTypeAndName(typeof(LabelWidgetData), "label")]
+[WidgetTypeAndName(typeof(LabelData), "label")]
 public class DesignLabel : DesignWidget
 {
 	public override bool PasteAsChildren => false;

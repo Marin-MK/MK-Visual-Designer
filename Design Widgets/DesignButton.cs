@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace VisualDesigner;
 
-[WidgetTypeAndName(typeof(ButtonWidgetData), "button")]
+[WidgetTypeAndName(typeof(ButtonData), "button")]
 public class DesignButton : DesignWidget
 {
     public override bool PasteAsChildren => false;

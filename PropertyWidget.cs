@@ -64,8 +64,12 @@ public class TextPropertyWidget : PropertyWidget
 	public TextPropertyWidget(IContainer Parent, Property Property, float HSeparatorX) : base(Parent, Property, HSeparatorX)
 	{
 		TextBox = new VDTextBox(this);
+		TextBox.SetDeselectOnEnterPressed(false);
 		Refresh();
-		TextBox.OnWidgetDeselected += _ =>
+		TextBox.OnEnterPressed += _ => UpdateValue();
+		TextBox.OnWidgetDeselected += _ => UpdateValue();
+
+		void UpdateValue()
 		{
 			if (!Available) return;
 			Property.OnSetValue(TextBox.Text.Replace("\\n", "\n"));
@@ -112,6 +116,7 @@ public class NumericPropertyWidget : PropertyWidget
 		TextBox.SetNumericOnly(true);
 		TextBox.SetDefaultNumericValue((int) Property.GetValue());
 		TextBox.SetShowDisabledText(true);
+		TextBox.SetDeselectOnEnterPressed(false);
         int? MinValue = null;
 		int? MaxValue = null;
 		if (Property.Parameters is List<object>)
@@ -128,7 +133,10 @@ public class NumericPropertyWidget : PropertyWidget
 			}
 		}
 		Refresh();
-		TextBox.OnWidgetDeselected += _ =>
+		TextBox.OnEnterPressed += _ => UpdateValue();
+		TextBox.OnWidgetDeselected += _ => UpdateValue();
+
+		void UpdateValue()
 		{
 			if (string.IsNullOrEmpty(TextBox.Text) || !Utilities.IsNumeric(TextBox.Text)) return;
 			int value = Convert.ToInt32(TextBox.Text);
@@ -308,9 +316,13 @@ public class PaddingPropertyWidget : TextPropertyWidget
 {
 	public PaddingPropertyWidget(IContainer Parent, Property Property, float HSeparatorX) : base(Parent, Property, HSeparatorX)
 	{
-		TextBox.OnWidgetDeselected.GetInvocationList().ToList().ForEach(d => TextBox.OnWidgetDeselected -= (BaseEvent) d);
+        TextBox.OnEnterPressed.GetInvocationList().ToList().ForEach(d => TextBox.OnEnterPressed -= (BaseEvent)d);
+        TextBox.OnWidgetDeselected.GetInvocationList().ToList().ForEach(d => TextBox.OnWidgetDeselected -= (BaseEvent) d);
 		Refresh();
-		TextBox.OnWidgetDeselected += _ =>
+		TextBox.OnEnterPressed += _ => UpdateValue();
+		TextBox.OnWidgetDeselected += _ => UpdateValue();
+
+		void UpdateValue()
 		{
 			Padding? padding = StringToPadding(TextBox.Text);
 			if (padding != null) Property.SetValue(padding);
@@ -482,11 +494,16 @@ public class ListPropertyWidget : PropertyWidget
 		Refresh();
 		DropdownBox.OnDropDownClicked += _ =>
 		{
-			GenericListWindow win = new GenericListWindow("Edit Items", (List<string>) Property.GetValue());
+			bool Numeric = Property.Parameters is bool && (bool) Property.Parameters == true;
+			List<string> Items;
+			if (Numeric) Items = ((List<int>) Property.GetValue()).Select(e => e.ToString()).ToList();
+			else Items = (List<string>) Property.GetValue();
+			GenericListWindow win = new GenericListWindow("Edit Items", Items, Numeric);
 			win.OnClosed += _ =>
 			{
 				if (!win.Apply) return;
-				Property.SetValue(win.Value);
+				if (Numeric) Property.SetValue(win.Value.Select(e => Convert.ToInt32(e)).ToList());
+				else Property.SetValue(win.Value);
 				Refresh();
 			};
 		};

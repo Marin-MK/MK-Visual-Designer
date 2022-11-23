@@ -14,7 +14,7 @@ public class DesignWidget : Widget
 	public static int WidgetPadding = 10;
 	public static int WidthAdd = WidgetPadding * 2;
 	public static int HeightAdd = WidgetPadding * 2;
-	public static int SnapDifference = 8;
+	public static int SnapDifference = 5;
 
 	public virtual bool PasteAsChildren => true;
 
@@ -81,7 +81,7 @@ public class DesignWidget : Widget
 				string OldName = Name;
 				string NewName = (string) e;
 				DesignWidget? dw = this is DesignWindow ? null : Program.DesignWindow.GetWidgetByName(NewName);
-				if (dw != null)
+				if (dw != null && dw != this)
 				{
 					new MessageBox("Error", $"A widget already exists with the name '{NewName}' (type '{dw.GetType().Name}').", ButtonType.OK, IconType.Error);
 					Program.ParameterPanel.Refresh();
@@ -285,7 +285,8 @@ public class DesignWidget : Widget
 							new MenuItem("Check Box", _ => CreateSibling("checkbox")),
 							new MenuItem("Radio Box", _ => CreateSibling("radiobox")),
 							new MenuItem("Dropdown Box", _ => CreateSibling("dropdown")),
-							new MenuItem("Browser Box", _ => CreateSibling("browserbox"))
+							new MenuItem("Browser Box", _ => CreateSibling("browserbox")),
+							new MenuItem("Numeric Slider", _ => CreateSibling("numericslider")),
 						}
 					},
 					new MenuItem("Child")
@@ -300,48 +301,56 @@ public class DesignWidget : Widget
 							new MenuItem("Check Box", _ => CreateChild("checkbox")),
 							new MenuItem("Radio Box", _ => CreateChild("radiobox")),
 							new MenuItem("Dropdown Box", _ => CreateChild("dropdown")),
-							new MenuItem("Browser Box", _ => CreateChild("browserbox"))
+							new MenuItem("Browser Box", _ => CreateChild("browserbox")),
+							new MenuItem("Numeric Slider", _ => CreateChild("numericslider")),
 						}
 					}
 				}
 			},
 			new MenuItem("Copy")
 			{
+                IsClickable = e => e.Value = this is not DesignWindow,
 				Shortcut = "Ctrl+C",
-				OnClicked = _ => CopySelection()
+                OnClicked = _ => CopySelection()
 			},
 			new MenuItem("Cut")
 			{
-				Shortcut = "Ctrl+X",
+                IsClickable = e => e.Value = this is not DesignWindow,
+                Shortcut = "Ctrl+X",
 				OnClicked = _ => CutSelection()
 			},
 			new MenuItem("Paste (smart)")
 			{
+				IsClickable = e => e.Value = IsWidgetDataOnClipboard(),
 				Shortcut = "Ctrl+V",
 				OnClicked = _ => PasteSelection(PasteType.Smart)
 			},
 			new MenuItem("Paste as Child")
 			{
+				IsClickable = e => e.Value = IsWidgetDataOnClipboard(),
 				OnClicked = _ => PasteSelection(PasteType.Child)
 			},
 			new MenuItem("Paste as Sibling")
 			{
-				OnClicked = _ => PasteSelection(PasteType.Sibling)
+                IsClickable = e => e.Value = this is not DesignWindow && IsWidgetDataOnClipboard(),
+                OnClicked = _ => PasteSelection(PasteType.Sibling)
 			},
 			new MenuItem("Duplicate")
 			{
-				Shortcut = "Ctrl+D",
+                IsClickable = e => e.Value = this is not DesignWindow && IsWidgetDataOnClipboard(),
+                Shortcut = "Ctrl+D",
 				OnClicked = _ => DuplicateSelection()
 			},
 			new MenuItem("Flatten")
 			{
-				OnClicked = _ => Flatten(),
-				IsClickable = e => e.Value = this is not DesignWindow
+                IsClickable = e => e.Value = this is not DesignWindow,
+                OnClicked = _ => Flatten(),
 			},
 			new MenuSeparator(),
 			new MenuItem("Delete")
 			{
-				Shortcut = "Del",
+                IsClickable = e => e.Value = this is not DesignWindow,
+                Shortcut = "Del",
 				OnClicked = _ => DeleteSelection()
 			}
 		});
@@ -453,6 +462,11 @@ public class DesignWidget : Widget
 		Undo.CreateDeleteUndoAction.Register(this, DesignParent.Name, CloneData(data), false, false);
 	}
 
+	public bool IsWidgetDataOnClipboard()
+	{
+		return Program.CopyData != null && Program.CopyData.Count > 0;
+	}
+
 	private List<Dictionary<string, object>> CloneData(List<Dictionary<string, object>> data)
 	{
 		List<Dictionary<string, object>> NewList = new List<Dictionary<string, object>>();
@@ -470,6 +484,15 @@ public class DesignWidget : Widget
 		if (this is DesignWindow) return;
 		CopySelection();
 		PasteSelection(PasteType.Sibling);
+	}
+
+	public void SelectAllChildren()
+	{
+		Program.DesignWindow.DeselectAll();
+		Widgets.ForEach(w =>
+		{
+			if (w is DesignWidget) ((DesignWidget) w).Select(true);
+		});
 	}
 
 	public void DeleteSelection()
@@ -623,6 +646,14 @@ public class DesignWidget : Widget
 			w = new DesignBrowserBox(Parent);
 			w.SetSize(100 + WidthAdd, 25 + HeightAdd);
 		}
+		else if (Type == "numericslider")
+		{
+			w = new DesignNumericSlider(Parent);
+			((DesignNumericSlider)w).SetMinimumValue(0);
+			((DesignNumericSlider)w).SetMaximumValue(100);
+			((DesignNumericSlider)w).SetSnapValues(0, 25, 50, 75, 100);
+			w.SetSize(100 + WidthAdd, 17 + HeightAdd);
+		}
 		else
 		{
 			throw new Exception($"Unsupported widget type '{Type}'.");
@@ -630,6 +661,8 @@ public class DesignWidget : Widget
 		int x = ContextMenuMouseOrigin.X - Parent.Viewport.X - w.Size.Width / 2;
         int y = ContextMenuMouseOrigin.Y - Parent.Viewport.Y - w.Size.Height / 2;
         w.SetPosition(x, y);
+		w.Select(false);
+		Undo.CreateDeleteUndoAction.Register(this, Parent.Name, Program.WidgetsToDict(new List<DesignWidget>() { w }), false, true);
     }
 
 	public void CreateSibling(string Type)

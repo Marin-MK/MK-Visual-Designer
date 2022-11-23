@@ -16,11 +16,11 @@ public static class MenuBarItemProvider
             {
                 Items = new List<IMenuItem>()
                 {
-                    new MenuItem("New", _ => Program.NewProject()),
-                    new MenuItem("Open", _ => Program.OpenProject()),
-                    new MenuItem("Save", _ => Program.SaveProject()),
-                    new MenuItem("Save As", _ => Program.SaveProjectAs()),
-                    new MenuItem("Export as Code", _ => Program.ExportAsPseudoCode()),
+                    new MenuItem("New", _ => Program.NewProject()) { Shortcut = "Ctrl+N" },
+                    new MenuItem("Open", _ => Program.OpenProject()) { Shortcut = "Ctrl+O" },
+                    new MenuItem("Save", _ => Program.SaveProject()) { Shortcut = "Ctrl+S" },
+                    new MenuItem("Save As", _ => Program.SaveProjectAs()) { Shortcut = "Ctrl+Shift+S" },
+                    new MenuItem("Export as Code", _ => Program.ExportAsPseudoCode()) { Shortcut = "Ctrl+E" },
                     new MenuSeparator(),
                     new MenuItem("Exit", _ => Program.Exit(true))
                 }
@@ -32,12 +32,14 @@ public static class MenuBarItemProvider
                     new MenuItem("Undo")
                     {
                         IsClickable = e => e.Value = Program.UndoList.Count > 0,
-                        OnClicked = _ => Program.Undo()
+                        OnClicked = _ => Program.Undo(),
+                        Shortcut = "Ctrl+Z"
                     },
                     new MenuItem("Redo")
                     {
                         IsClickable = e => e.Value = Program.RedoList.Count > 0,
-                        OnClicked = _ => Program.Redo()
+                        OnClicked = _ => Program.Redo(),
+                        Shortcut = "Ctrl+Y"
                     }
                 }
             }

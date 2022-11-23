@@ -242,6 +242,7 @@ public class Program
 
     public static void ClearProject()
     {
+        ProjectFile = null;
         DesignWindow.DeselectAll();
         int i = 0;
         while (DesignWindow.Widgets.Count > i)
@@ -326,7 +327,7 @@ public class Program
 
     public static unsafe void SaveProject()
     {
-        if (string.IsNullOrEmpty(ProjectFile)) throw new Exception("Could not save to unknown project file.");
+        if (string.IsNullOrEmpty(ProjectFile)) return;
         string json = WidgetToJSON(DesignWindow);
         Widget ActiveWidget = MainWindow.UI.SelectedWidget;
         List<DesignWidget> SelectedWidgets = new List<DesignWidget>(DesignWindow.SelectedWidgets);
@@ -393,7 +394,7 @@ public class Program
     public static void ExportAsPseudoCode(string? Filename = null)
     {
         string code = GeneratePseudoCode();
-        Filename = "C:/Users/m3rei/Desktop/TestWindow.cs";
+        //Filename = "C:/Users/m3rei/Desktop/TestWindow.cs";
         if (string.IsNullOrEmpty(Filename))
         {
             OpenFileDialog ofd = new OpenFileDialog();

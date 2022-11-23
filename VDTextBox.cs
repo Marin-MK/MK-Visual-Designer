@@ -15,9 +15,10 @@ public class VDTextBox : Widget
     public int DefaultNumericValue => TextArea.DefaultNumericValue;
     public bool Enabled => TextArea.Enabled;
     public bool ShowDisabledText => TextArea.ShowDisabledText;
+    public bool DeselectOnEnterPressed => TextArea.DeselectOnEnterPressed;
     public TextEvent OnTextChanged { get => TextArea.OnTextChanged; set => TextArea.OnTextChanged = value; }
     public BaseEvent OnWidgetDeselected { get => TextArea.OnWidgetDeselected; set => TextArea.OnWidgetDeselected = value; }
-
+    public BaseEvent OnEnterPressed { get => TextArea.OnEnterPressed; set => TextArea.OnEnterPressed = value; }
 
     public VDTextBox(IContainer Parent) : base(Parent)
 	{
@@ -56,5 +57,10 @@ public class VDTextBox : Widget
     public void SetShowDisabledText(bool ShowDisabledText)
     {
         TextArea.SetShowDisabledText(ShowDisabledText);
+    }
+
+    public void SetDeselectOnEnterPressed(bool DeselectOnEnterPressed)
+    {
+        TextArea.SetDeselectOnEnterPress(DeselectOnEnterPressed);
     }
 }

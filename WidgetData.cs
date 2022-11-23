@@ -870,7 +870,7 @@ public class DropdownBoxData : WidgetData
     public override void AddToDict(Dictionary<string, object> Dict)
     {
         Dict.Add("items", Items);
-        Dict.Add("selectedindex", SelectedIndex);
+        Dict.Add("selectedindex", (long)SelectedIndex);
         Dict.Add("readonly", ReadOnly);
         Dict.Add("enabled", Enabled);
     }
@@ -960,5 +960,80 @@ public class BrowserBoxData : WidgetData
         if (!TextColor.Equals(Color.WHITE)) CE.WriteCode($"SetTextColor({GetColorCode(TextColor)});");
         if (!ReadOnly) CE.WriteCode($"SetReadOnly(false);");
         if (!Enabled) CE.WriteCode("SetEnabled(false);");
+    }
+}
+
+public class NumericSliderData : WidgetData
+{
+    public override string ClassName => "NumericSlider";
+
+    public int Value;
+    public int MinValue;
+    public int MaxValue;
+    public List<int> SnapValues;
+    public int SnapStrength;
+    public bool Enabled;
+
+    public NumericSliderData(DesignNumericSlider w) : base(w)
+    {
+        this.Value = w.Value;
+        this.MinValue = w.MinValue;
+        this.MaxValue = w.MaxValue;
+        this.SnapValues = w.SnapValues.Select(e => e.Value).ToList();
+        this.SnapStrength = w.SnapStrength;
+        this.Enabled = w.Enabled;
+    }
+
+    public NumericSliderData(Dictionary<string, object> Data) : base(Data)
+    {
+        this.Value = (int)(long)Data["value"];
+        this.MinValue = (int)(long)Data["minvalue"];
+        this.MaxValue = (int)(long)Data["maxvalue"];
+        if (Data["snapvalues"] is List<int>) this.SnapValues = ((List<int>) Data["snapvalues"]);
+        else this.SnapValues = ((List<object>) Data["snapvalues"]).Select(o => Convert.ToInt32(o.ToString())).ToList();
+        this.SnapStrength = (int)(long)Data["snapstrength"];
+        this.Enabled = (bool)Data["enabled"];
+    }
+
+    public override void AddToDict(Dictionary<string, object> Dict)
+    {
+        Dict.Add("value", (long)Value);
+        Dict.Add("minvalue", (long)MinValue);
+        Dict.Add("maxvalue", (long)MaxValue);
+        Dict.Add("snapvalues", SnapValues);
+        Dict.Add("snapstrength", (long)SnapStrength);
+        Dict.Add("enabled", Enabled);
+    }
+
+    public override void SetWidget(DesignWidget Widget)
+    {
+        base.SetWidget(Widget);
+        DesignNumericSlider b = (DesignNumericSlider) Widget;
+        b.SetMinimumValue(MinValue);
+        b.SetMaximumValue(MaxValue);
+        b.SetValue(Value);
+        b.SetSnapValues(SnapValues);
+        b.SetSnapStrength(SnapStrength);
+        b.SetEnabled(Enabled);
+    }
+
+    public override void WriteCode(CodeExporter CE)
+    {
+        base.WriteCode(CE);
+        if (MinValue != 0) CE.WriteCode($"SetMinimumValue({MinValue});");
+        if (MaxValue != 100) CE.WriteCode($"SetMaximumValue({MaxValue});");
+        if (Value != 50) CE.WriteCode($"SetValue({Value});");
+        if (SnapStrength != 4) CE.WriteCode($"SetSnapStrength({SnapStrength});");
+        if (SnapValues.Count != 5 || SnapValues[0] != 0 || SnapValues[1] != 25 || SnapValues[2] != 50 || SnapValues[3] != 75 || SnapValues[4] != 100)
+        {
+            string Code = "SetSnapValues(";
+            for (int i = 0; i < SnapValues.Count; i++)
+            {
+                Code += SnapValues[i].ToString();
+                if (i != SnapValues.Count - 1) Code += ", ";
+            }
+            Code += ");";
+            CE.WriteCode(Code);
+        }
     }
 }

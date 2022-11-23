@@ -63,6 +63,11 @@ public class MainWindow : UIWindow
 		UI.RegisterShortcut(new Shortcut(null, new Key(Keycode.Z, Keycode.CTRL), _ => Program.Undo(), true));
         UI.RegisterShortcut(new Shortcut(null, new Key(Keycode.Y, Keycode.CTRL), _ => Program.Redo(), true));
 		UI.RegisterShortcut(new Shortcut(null, new Key(Keycode.S, Keycode.CTRL) , _ => Program.SaveProject(), true));
+        UI.RegisterShortcut(new Shortcut(null, new Key(Keycode.S, Keycode.SHIFT, Keycode.CTRL), _ => Program.SaveProjectAs(), true));
+        UI.RegisterShortcut(new Shortcut(null, new Key(Keycode.O, Keycode.CTRL), _ => Program.OpenProject(), true));
+        UI.RegisterShortcut(new Shortcut(null, new Key(Keycode.N, Keycode.CTRL), _ => Program.NewProject(), true));
+        UI.RegisterShortcut(new Shortcut(null, new Key(Keycode.E, Keycode.CTRL), _ => Program.ExportAsPseudoCode(), true));
+		UI.RegisterShortcut(new Shortcut(null, new Key(Keycode.A, Keycode.CTRL), _ => Program.DesignWindow.SelectAllChildren(), true));
     }
 
 	public override void SizeChanged(BaseEventArgs e)

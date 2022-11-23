@@ -111,58 +111,81 @@ public class Program
         return Widgets;
     }
 
+    static System.Type? DataTypeToWidgetType(System.Type DataType)
+    {
+        return Assembly.GetExecutingAssembly()
+            .GetTypes()
+            .ToList()
+            .Find(t =>
+            {
+                WidgetTypeAndName? attrib = t.GetCustomAttribute<WidgetTypeAndName>();
+                if (attrib == null) return false;
+                if (attrib.DataType == DataType) return true;
+                return false;
+            });
+    }
+
+    public static string DataTypeToDataName(System.Type DataType)
+    {
+        return Assembly.GetExecutingAssembly()
+            .GetTypes()
+            .ToList()
+            .Find(t =>
+            {
+                WidgetTypeAndName? attrib = t.GetCustomAttribute<WidgetTypeAndName>();
+                if (attrib == null) return false;
+                if (attrib.DataType == DataType) return true;
+                return false;
+            })
+            .GetCustomAttribute<WidgetTypeAndName>()
+            .DataName;
+    }
+
+    static System.Type? TypeNameToDataType(string TypeName)
+    {
+        return Assembly.GetExecutingAssembly()
+            .GetTypes()
+            .ToList()
+            .Find(t =>
+            {
+                WidgetTypeAndName? attrib = t.GetCustomAttribute<WidgetTypeAndName>();
+                if (attrib == null) return false;
+                if (attrib.DataName == TypeName) return true;
+                return false;
+            })
+            .GetCustomAttribute<WidgetTypeAndName>()
+            .DataType;
+    }
+
     public static WidgetData DictToData(Dictionary<string, object> Dict)
     {
-        WidgetData dat = null;
-        System.Type t = null;
-        string Type = (string) Dict["type"];
-        if (Type == "button") t = typeof(ButtonWidgetData);
-        else if (Type == "label") t = typeof(LabelWidgetData);
-        else if (Type == "list") t = typeof(ListWidgetData);
-        else if (Type == "container") t = typeof(WidgetData);
-        else if (Type == "textbox") t = typeof(TextBoxWidgetData);
-        else if (Type == "numericbox") t = typeof(NumericBoxWidgetData);
-        else if (Type == "checkbox") t = typeof(CheckBoxWidgetData);
-        else if (Type == "radiobox") t = typeof(RadioBoxWidgetData);
-        else if (Type == "window") t = typeof(WindowData);
-        else throw new Exception($"Unknown data type '{Type}'.");
-        dat = (WidgetData) Activator.CreateInstance(t, Dict);
+        WidgetData? dat = null;
+        System.Type? type = TypeNameToDataType((string) Dict["type"]);
+        if (type == null) throw new Exception($"Unknown data type '{type}'.");
+        dat = (WidgetData?) Activator.CreateInstance(type, Dict);
+        if (dat == null) throw new Exception($"Failed to instantiate object of type '{type}'");
         return dat;
     }
 
     public static WidgetData WidgetToData(DesignWidget Widget)
     {
-        WidgetData dat = null;
-        System.Type t = null;
-        if (Widget is DesignWindow) t = typeof(WindowData);
-        else if (Widget is DesignButton) t = typeof(ButtonWidgetData);
-        else if (Widget is DesignLabel) t = typeof(LabelWidgetData);
-        else if (Widget is DesignListBox) t = typeof(ListWidgetData);
-        else if (Widget is DesignTextBox) t = typeof(TextBoxWidgetData);
-        else if (Widget is DesignNumericBox) t = typeof(NumericBoxWidgetData);
-        else if (Widget is DesignCheckBox) t = typeof(CheckBoxWidgetData);
-        else if (Widget is DesignRadioBox) t = typeof(RadioBoxWidgetData);
-        else if (Widget.GetType() == typeof(DesignWidget)) t = typeof(WidgetData);
-        else throw new Exception($"Unknown widget type '{Widget.GetType().Name}'.");
-        dat = (WidgetData) Activator.CreateInstance(t, Widget);
+        WidgetData? dat = null;
+        WidgetTypeAndName? attrib = Widget.GetType().GetCustomAttribute<WidgetTypeAndName>();
+        System.Type? type = attrib?.DataType;
+        if (type == null) throw new Exception($"Unknown widget type '{Widget.GetType().Name}'.");
+        dat = (WidgetData?) Activator.CreateInstance(type, Widget);
+        if (dat == null) throw new Exception($"Failed to instantiate object of type '{type}'");
         return dat;
     }
 
     public static DesignWidget WidgetFromData(DesignWidget Parent, WidgetData Data)
     {
-        DesignWidget w = null;
-        System.Type t = null;
-        if (Data.Type == "button") t = typeof(DesignButton);
-        else if (Data.Type == "label") t = typeof(DesignLabel);
-        else if (Data.Type == "list") t = typeof(DesignListBox);
-        else if (Data.Type == "container") t = typeof(DesignWidget);
-        else if (Data.Type == "textbox") t = typeof(DesignTextBox);
-        else if (Data.Type == "numericbox") t = typeof(DesignNumericBox);
-        else if (Data.Type == "checkbox") t = typeof(DesignCheckBox);
-        else if (Data.Type == "radiobox") t = typeof(DesignRadioBox);
-        else throw new Exception($"Unknown data type '{Data.Type}'.");
-        if (t == typeof(DesignWidget)) w = (DesignWidget) Activator.CreateInstance(t, Parent, null);
-        else w = (DesignWidget) Activator.CreateInstance(t, Parent);
+        DesignWidget? w = null;
+        System.Type? type = DataTypeToWidgetType(Data.GetType());
+        if (type == null) throw new Exception($"Unknown data type '{Data.GetType()}'.");
+        if (type == typeof(DesignWidget)) w = (DesignWidget?) Activator.CreateInstance(type, Parent, null);
+        else w = (DesignWidget?) Activator.CreateInstance(type, Parent);
+        if (w == null) throw new Exception($"Failed to instantiate object of type '{type}'");
         Data.SetWidget(w);
         return w;
     }

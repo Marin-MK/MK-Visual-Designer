@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace VisualDesigner;
 
+[WidgetTypeAndName(typeof(ListWidgetData), "list")]
 public class DesignListBox : DesignWidget
 {
     public override bool PasteAsChildren => false;
@@ -65,7 +66,7 @@ public class DesignListBox : DesignWidget
                 {
                     ((DesignListBox) Widget).SetSelectedIndex(IsRedo ? SelectedIndex : OldSelectedIndex);
                 }, true);
-            }),
+            }, new List<object>() { -1 }),
 
             new Property("Selected Color", PropertyType.Color, () => SelectedItemColor, e =>
             {

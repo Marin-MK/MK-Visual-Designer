@@ -3,16 +3,15 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace VisualDesigner;
 
 public class WidgetData
 {
-    public virtual string Type => "container";
     public virtual string ClassName => "Container";
     public virtual string[] Dependencies => new string[0];
 
@@ -198,7 +197,7 @@ public class WidgetData
     public virtual Dictionary<string, object> ConvertToDict()
     {
         Dictionary<string, object> Dict = new Dictionary<string, object>();
-        Dict.Add("type", this.Type);
+        Dict.Add("type", Program.DataTypeToDataName(GetType()));
         Dict.Add("name", Name);
         Dict.Add("parentname", ParentName);
         Dict.Add("position", CreateDict(("x", (long) Position.X), ("y", (long) Position.Y)));
@@ -248,7 +247,6 @@ public class WidgetData
 
 public class WindowData : WidgetData
 {
-    public override string Type => "window";
     public string Title;
     public bool Fullscreen;
     public bool IsPopup;
@@ -281,7 +279,7 @@ public class WindowData : WidgetData
     public override Dictionary<string, object> ConvertToDict()
     {
         Dictionary<string, object> Dict = new Dictionary<string, object>();
-        Dict.Add("type", this.Type);
+        Dict.Add("type", Program.DataTypeToDataName(GetType()));
         Dict.Add("name", Name);
         Dict.Add("size", CreateDict(("width", (long) Size.Width), ("height", (long) Size.Height)));
         Dict.Add("widgets", Widgets.Select(w => w.ConvertToDict()).ToList());
@@ -308,7 +306,6 @@ public class WindowData : WidgetData
 
 public class ButtonWidgetData : WidgetData
 {
-    public override string Type => "button";
     public override string ClassName => "Button";
     public string Text;
     public Font Font;
@@ -379,7 +376,6 @@ public class ButtonWidgetData : WidgetData
 
 public class LabelWidgetData : WidgetData
 {
-    public override string Type => "label";
     public override string ClassName => "Label";
     public string Text;
     public Font Font;
@@ -460,7 +456,6 @@ public class LabelWidgetData : WidgetData
 
 public class ListWidgetData : WidgetData
 {
-    public override string Type => "list";
     public override string ClassName => "ListBox";
     public override string[] Dependencies => new string[] { "System.Collections", "System.Collections.Generic" };
 
@@ -537,7 +532,6 @@ public class ListWidgetData : WidgetData
 
 public class TextBoxWidgetData : WidgetData
 {
-    public override string Type => "textbox";
     public override string ClassName => "TextBox";
 
     public string Text;
@@ -676,7 +670,6 @@ public class TextBoxWidgetData : WidgetData
 
 public class NumericBoxWidgetData : WidgetData
 {
-    public override string Type => "numericbox";
     public override string ClassName => "NumericBox";
 
     public int Value;
@@ -736,7 +729,6 @@ public class NumericBoxWidgetData : WidgetData
 
 public class CheckBoxWidgetData : WidgetData
 {
-    public override string Type => "checkbox";
     public override string ClassName => "CheckBox";
 
     public string Text;
@@ -797,7 +789,6 @@ public class CheckBoxWidgetData : WidgetData
 
 public class RadioBoxWidgetData : WidgetData
 {
-    public override string Type => "radiobox";
     public override string ClassName => "RadioBox";
 
     public string Text;
@@ -846,6 +837,69 @@ public class RadioBoxWidgetData : WidgetData
         if (!string.IsNullOrEmpty(Text)) CE.WriteCode($"SetText(\"{Text}\");");
         if (Checked) CE.WriteCode($"SetChecked(true);");
         CE.WriteCode($"SetFont({GetFontCode(Font)});");
+        if (!Enabled) CE.WriteCode("SetEnabled(false);");
+    }
+}
+
+public class DropdownBoxWidgetData : WidgetData
+{
+    public override string ClassName => "DropdownBox";
+
+    public List<string> Items;
+    public int SelectedIndex;
+    public bool ReadOnly;
+    public bool Enabled;
+
+    public DropdownBoxWidgetData(DesignDropdownBox w) : base(w)
+    {
+        this.Items = w.Items.Select(x => x.Name).ToList();
+        this.SelectedIndex = w.SelectedIndex;
+        this.ReadOnly = w.ReadOnly;
+        this.Enabled = w.Enabled;
+    }
+
+    public DropdownBoxWidgetData(Dictionary<string, object> Data) : base(Data)
+    {
+        if (Data["items"] is List<string>) this.Items = ((List<string>) Data["items"]);
+        else this.Items = ((List<object>) Data["items"]).Select(o => o.ToString()).ToList();
+        this.SelectedIndex = (int)(long)Data["selectedindex"];
+        this.ReadOnly = (bool)Data["readonly"];
+        this.Enabled = (bool)Data["enabled"];
+    }
+
+    public override void AddToDict(Dictionary<string, object> Dict)
+    {
+        Dict.Add("items", Items);
+        Dict.Add("selectedindex", SelectedIndex);
+        Dict.Add("readonly", ReadOnly);
+        Dict.Add("enabled", Enabled);
+    }
+
+    public override void SetWidget(DesignWidget Widget)
+    {
+        base.SetWidget(Widget);
+        DesignDropdownBox b = (DesignDropdownBox) Widget;
+        b.SetItems(Items.Select(x => new ListItem(x)).ToList());
+        b.SetSelectedIndex(SelectedIndex);
+        b.SetReadOnly(ReadOnly);
+        b.SetEnabled(Enabled);
+    }
+
+    public override void WriteCode(CodeExporter CE)
+    {
+        base.WriteCode(CE);
+        if (Items.Count != 0)
+        {
+            CE.WriteCode("SetItems(new List<ListItem>()");
+            CE.WriteCode("{", false);
+            for (int i = 0; i < Items.Count; i++)
+            {
+                CE.WriteCode($"\tnew ListItem(\"{Items[i]}\"){(i == Items.Count - 1 ? "" : ",")}", false);
+            }
+            CE.WriteCode("});", false);
+        }
+        if (SelectedIndex != -1) CE.WriteCode($"SetSelectedIndex({SelectedIndex});");
+        if (!ReadOnly) CE.WriteCode($"SetReadOnly(false);");
         if (!Enabled) CE.WriteCode("SetEnabled(false);");
     }
 }

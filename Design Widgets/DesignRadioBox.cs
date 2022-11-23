@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace VisualDesigner;
 
+[WidgetTypeAndName(typeof(RadioBoxWidgetData), "radiobox")]
 public class DesignRadioBox : DesignWidget
 {
     public string Text { get; protected set; }

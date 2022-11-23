@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace VisualDesigner;
 
+[WidgetTypeAndName(typeof(CheckBoxWidgetData), "checkbox")]
 public class DesignCheckBox : DesignWidget
 {
     public string Text { get; protected set; }

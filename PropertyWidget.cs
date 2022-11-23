@@ -122,6 +122,10 @@ public class NumericPropertyWidget : PropertyWidget
 				MinValue = (int?) Params[0];
 				MaxValue = (int?) Params[1];
 			}
+			else if (Params.Count == 1)
+			{
+				MinValue = (int?) Params[0];
+			}
 		}
 		Refresh();
 		TextBox.OnWidgetDeselected += _ =>

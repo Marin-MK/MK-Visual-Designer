@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Platforms>x64</Platforms>
-    <Configurations>Debug</Configurations>
+    <Configurations>Debug;Release</Configurations>
     <ApplicationIcon>logo-64x64.ico</ApplicationIcon>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>

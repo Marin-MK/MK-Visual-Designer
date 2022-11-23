@@ -7,6 +7,7 @@ using System.Text;
 
 namespace VisualDesigner;
 
+[WidgetTypeAndName(typeof(WidgetData), "container")]
 public class DesignWidget : Widget
 {
 	public static int MousePadding = 3;
@@ -283,6 +284,7 @@ public class DesignWidget : Widget
 							new MenuItem("Numeric Box", _ => CreateSibling("numericbox")),
 							new MenuItem("Check Box", _ => CreateSibling("checkbox")),
 							new MenuItem("Radio Box", _ => CreateSibling("radiobox")),
+							new MenuItem("Dropdown Box", _ => CreateSibling("dropdown")),
 						}
 					},
 					new MenuItem("Child")
@@ -296,6 +298,7 @@ public class DesignWidget : Widget
 							new MenuItem("Numeric Box", _ => CreateChild("numericbox")),
 							new MenuItem("Check Box", _ => CreateChild("checkbox")),
 							new MenuItem("Radio Box", _ => CreateChild("radiobox")),
+							new MenuItem("Dropdown Box", _ => CreateChild("dropdown")),
 						}
 					}
 				}
@@ -607,6 +610,11 @@ public class DesignWidget : Widget
 			w = new DesignRadioBox(Parent);
 			((DesignRadioBox) w).SetText("Unnamed RadioBox");
 			w.SetHeight(16 + HeightAdd);
+		}
+		else if (Type == "dropdown")
+		{
+			w = new DesignDropdownBox(Parent);
+			w.SetSize(100 + WidthAdd, 24 + HeightAdd);
 		}
 		else
 		{

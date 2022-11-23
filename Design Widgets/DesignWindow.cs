@@ -4,10 +4,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace VisualDesigner;
 
+[WidgetTypeAndName(typeof(WindowData), "window")]
 public class DesignWindow : DesignWidget
 {
     public string Title { get; protected set; } = "Unnamed Window";

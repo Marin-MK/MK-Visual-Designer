@@ -1,6 +1,7 @@
 ﻿using RPGStudioMK.Game;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
@@ -10,6 +11,8 @@ using System.Threading.Tasks;
 
 namespace VisualDesigner;
 
+// Necessary to prevent derived classes from being trimmed out of the final assembly because they're never literally being referenced
+[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
 public class WidgetData
 {
     public virtual string ClassName => "Container";

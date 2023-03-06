@@ -14,8 +14,7 @@ public class MainWindow : UIWindow
 	public MainWindow() : base(false, true)
 	{
 		SetBackgroundColor(28, 50, 73);
-        Assembly assembly = Assembly.GetExecutingAssembly();
-        string Version = FileVersionInfo.GetVersionInfo(assembly.Location).ProductVersion;
+        string Version = FileVersionInfo.GetVersionInfo(Environment.ProcessPath).ProductVersion;
 		SetText($"RPG Studio MK Window Designer {Version}");
         SetIcon("assets/img/logo.png");
 		Maximize();
@@ -67,7 +66,7 @@ public class MainWindow : UIWindow
         UI.RegisterShortcut(new Shortcut(null, new Key(Keycode.O, Keycode.CTRL), _ => Program.OpenProject(), true));
         UI.RegisterShortcut(new Shortcut(null, new Key(Keycode.N, Keycode.CTRL), _ => Program.NewProject(), true));
         UI.RegisterShortcut(new Shortcut(null, new Key(Keycode.E, Keycode.CTRL), _ => Program.ExportAsPseudoCode(), true));
-		UI.RegisterShortcut(new Shortcut(null, new Key(Keycode.A, Keycode.CTRL), _ => Program.DesignWindow.SelectAllChildren(), true));
+		UI.RegisterShortcut(new Shortcut(null, new Key(Keycode.A, Keycode.CTRL), _ => Program.DesignWindow.SelectAllChildren(), true, e => e.Value = !Input.TextInputActive()));
     }
 
 	public override void SizeChanged(BaseEventArgs e)

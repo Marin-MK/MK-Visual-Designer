@@ -8,6 +8,7 @@ using RPGStudioMK.Game;
 using System.Reflection;
 using System.Text;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace VisualDesigner;
 
@@ -30,7 +31,7 @@ public class Program
         string? ProjectFile = Args.Length > 0 ? Args[0] : null;
         if (ProjectFile != null) Path.GetFullPath(ProjectFile);
 
-        Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
+        Directory.SetCurrentDirectory(Path.GetDirectoryName(Environment.ProcessPath));
         Config.Setup();
         Amethyst.Start(Config.PathInfo, false, true);
 

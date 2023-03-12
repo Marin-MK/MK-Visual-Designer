@@ -335,7 +335,6 @@ public class Program
         DesignWindow.DeselectAll();
         Bitmap Bitmap = DesignWindow.ToBitmap(-DesignWindow.WindowEdges, -DesignWindow.WindowEdges);
         decodl.PNGEncoder encoder = new decodl.PNGEncoder(Bitmap.PixelPointer, (uint)Bitmap.Width, (uint)Bitmap.Height);
-        encoder.InvertData = Bitmap.RGBA8;
         encoder.ColorType = decodl.ColorTypes.RGBA;
         encoder.AddCustomChunk("mKUI", json, true);
         encoder.Encode(ProjectFile);

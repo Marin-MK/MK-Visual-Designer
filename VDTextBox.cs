@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace VisualDesigner;
+﻿namespace VisualDesigner;
 
 public class VDTextBox : Widget
 {
@@ -12,7 +6,7 @@ public class VDTextBox : Widget
 
     public string Text => TextArea.Text;
     public bool NumericOnly => TextArea.NumericOnly;
-    public int DefaultNumericValue => TextArea.DefaultNumericValue;
+    public float DefaultNumericValue => TextArea.DefaultNumericValue;
     public bool Enabled => TextArea.Enabled;
     public bool ShowDisabledText => TextArea.ShowDisabledText;
     public bool DeselectOnEnterPressed => TextArea.DeselectOnEnterPressed;

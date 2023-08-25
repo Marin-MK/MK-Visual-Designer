@@ -1,11 +1,4 @@
-﻿using RPGStudioMK.Undo;
-using System;
-using System.Collections.Generic;
-using System.Data.SqlTypes;
-using System.Linq;
-using System.Text;
-
-namespace VisualDesigner;
+﻿namespace VisualDesigner;
 
 [WidgetTypeAndName(typeof(WidgetData), "container")]
 public class DesignWidget : Widget

@@ -2,13 +2,8 @@
 global using RPGStudioMK.Widgets;
 global using odl;
 global using amethyst;
-
-using System;
-using RPGStudioMK.Game;
 using System.Reflection;
 using System.Text;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 
 namespace VisualDesigner;
 
@@ -33,6 +28,7 @@ public class Program
 
         Directory.SetCurrentDirectory(Path.GetDirectoryName(Environment.ProcessPath));
         Config.Setup();
+        Console.WriteLine();
         Amethyst.Start(Config.PathInfo, false, true);
 
         Widget.DefaultContextMenuFont = Fonts.Paragraph;

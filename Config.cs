@@ -28,6 +28,15 @@ internal static class Config
         linux.AddPath("libfreetype", "./lib/linux/libfreetype-6.so");
         linux.AddPath("tinyfiledialogs", "./lib/linux/tinyfiledialogs64.so");
 
-        PathInfo = PathInfo.Create(windows, linux);
+        PathPlatformInfo macos = new PathPlatformInfo(NativeLibraryLoader.Platform.MacOS);
+        macos.AddPath("libsdl2", "./lib/macos/SDL2.dylib");
+        macos.AddPath("libz", "./lib/macos/libz.dylib");
+        macos.AddPath("libsdl2_image", "./lib/macos/SDL2_image.dylib");
+        macos.AddPath("libpng", "./lib/macos/libpng.dylib");
+        macos.AddPath("libsdl2_ttf", "./lib/macos/SDL2_ttf.dylib");
+        macos.AddPath("libfreetype", "./lib/macos/libfreetype.dylib");
+        macos.AddPath("tinyfiledialogs", "./lib/macos/tinyfiledialogs.dylib");
+        
+        PathInfo = PathInfo.Create(windows, linux, macos);
     }
 }

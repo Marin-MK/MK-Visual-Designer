@@ -1,4 +1,6 @@
-﻿namespace VisualDesigner;
+﻿
+
+namespace VisualDesigner;
 
 public class ButtonDrawing : Widget
 {

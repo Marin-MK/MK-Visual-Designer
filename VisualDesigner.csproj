@@ -1,27 +1,34 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net7.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <Platforms>x64</Platforms>
-    <Configurations>Debug;Release</Configurations>
-    <ApplicationIcon>logo-64x64.ico</ApplicationIcon>
-    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    <Version>1.3.0</Version>
-  </PropertyGroup>
+    <PropertyGroup>
+        <TargetFramework>net7.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <Platforms>x64</Platforms>
+        <Configurations>Debug;Release</Configurations>
+        <ApplicationIcon>logo-64x64.ico</ApplicationIcon>
+        <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+        <Version>1.4.0</Version>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <Content Include="logo-64x64.ico" />
-  </ItemGroup>
+    <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+	    <OutputType>Exe</OutputType>
+	    <OutputPath>build/Debug</OutputPath>
+        <Optimize>False</Optimize>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\JSONParser\JSONParser.csproj" />
-    <ProjectReference Include="..\amethyst\amethyst.csproj" />
-    <ProjectReference Include="..\editor\RPGStudioMK.csproj" />
-    <ProjectReference Include="..\NativeLibraryLoader\NativeLibraryLoader.csproj" />
-    <ProjectReference Include="..\odl\odl.csproj" />
-  </ItemGroup>
+    <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+	    <OutputType>WinExe</OutputType>
+	    <OutputPath>build/Release</OutputPath>
+		<Optimize>True</Optimize>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\JSONParser\JSONParser.csproj" />
+        <ProjectReference Include="..\amethyst\amethyst.csproj" />
+        <ProjectReference Include="..\editor\RPGStudioMK.csproj" />
+        <ProjectReference Include="..\NativeLibraryLoader\NativeLibraryLoader.csproj" />
+        <ProjectReference Include="..\odl\odl.csproj" />
+    </ItemGroup>
 
 </Project>

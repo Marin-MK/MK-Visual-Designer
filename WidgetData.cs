@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 
+
 namespace VisualDesigner;
 
 // Necessary to prevent derived classes from being trimmed out of the final assembly because they're never literally being referenced
@@ -118,7 +119,7 @@ public class WidgetData
     protected string GetFontCode(Font Font)
     {
         int idx = Fonts.AllFonts.FindIndex(f => f.Font.Equals(Font));
-        if (idx == -1) return $"Font.Get(\"{Font.Name}\", {Font.Size})";
+        if (idx == -1) return $"FontCache.GetOrCreate(\"{Font.Name}\", {Font.Size})";
         else
         {
             (_, _, string CodeName) = Fonts.AllFonts[idx];
@@ -324,7 +325,7 @@ public class ButtonData : WidgetData
     public ButtonData(Dictionary<string, object> Data) : base(Data)
     {
         this.Text = (string) Data["text"];
-        this.Font = Font.Get((string) ValueFromPath(Data, "font", "name"), (int) (long) ValueFromPath(Data, "font", "size"));
+        this.Font = FontCache.GetOrCreate((string) ValueFromPath(Data, "font", "name"), (int) (long) ValueFromPath(Data, "font", "size"));
         this.TextColor = ColorFromPath(Data, "textcolor");
         this.LeftAlign = (bool) Data["leftalign"];
         this.TextX = (int) (long) Data["textx"];
@@ -392,7 +393,7 @@ public class LabelData : WidgetData
     public LabelData(Dictionary<string, object> Data) : base(Data)
     {
         this.Text = (string) Data["text"];
-        this.Font = Font.Get((string) ValueFromPath(Data, "font", "name"), (int) (long) ValueFromPath(Data, "font", "size"));
+        this.Font = FontCache.GetOrCreate((string) ValueFromPath(Data, "font", "name"), (int) (long) ValueFromPath(Data, "font", "size"));
         this.TextColor = ColorFromPath(Data, "textcolor");
         this.WidthLimit = (int) (long) Data["widthlimit"];
         this.LimitReplacementText = (string) Data["limittext"];
@@ -473,7 +474,7 @@ public class ListBoxData : WidgetData
 
     public ListBoxData(Dictionary<string, object> Data) : base(Data)
     {
-        this.Font = Font.Get((string) ValueFromPath(Data, "font", "name"), (int) (long) ValueFromPath(Data, "font", "size"));
+        this.Font = FontCache.GetOrCreate((string) ValueFromPath(Data, "font", "name"), (int) (long) ValueFromPath(Data, "font", "size"));
         this.LineHeight = (int) (long) Data["lineheight"];
         if (Data["items"] is List<string>) this.Items = ((List<string>) Data["items"]);
         else this.Items = ((List<object>) Data["items"]).Select(o => o.ToString()).ToList();
@@ -578,7 +579,7 @@ public class TextBoxData : WidgetData
         this.CaretY = (int)(long)Data["carety"];
         this.CaretHeight = (int)(long)Data["caretheight"];
         if (this.CaretHeight == -1) this.CaretHeight = null;
-        this.Font = Font.Get((string) ValueFromPath(Data, "font", "name"), (int) (long) ValueFromPath(Data, "font", "size"));
+        this.Font = FontCache.GetOrCreate((string) ValueFromPath(Data, "font", "name"), (int) (long) ValueFromPath(Data, "font", "size"));
         this.TextColor = ColorFromPath(Data, "textcolor");
         this.DisabledTextColor = ColorFromPath(Data, "disabledtextcolor");
         this.CaretColor = ColorFromPath(Data, "caretcolor");
@@ -746,7 +747,7 @@ public class CheckBoxData : WidgetData
     {
         this.Text = (string)Data["text"];
         this.Checked = (bool)Data["checked"];
-        this.Font = Font.Get((string)ValueFromPath(Data, "font", "name"), (int)(long)ValueFromPath(Data, "font", "size"));
+        this.Font = FontCache.GetOrCreate((string)ValueFromPath(Data, "font", "name"), (int)(long)ValueFromPath(Data, "font", "size"));
         this.Mirrored = (bool)Data["mirrored"];
         this.Enabled = (bool)Data["enabled"];
     }
@@ -804,7 +805,7 @@ public class RadioBoxData : WidgetData
     {
         this.Text = (string)Data["text"];
         this.Checked = (bool)Data["checked"];
-        this.Font = Font.Get((string)ValueFromPath(Data, "font", "name"), (int)(long)ValueFromPath(Data, "font", "size"));
+        this.Font = FontCache.GetOrCreate((string)ValueFromPath(Data, "font", "name"), (int)(long)ValueFromPath(Data, "font", "size"));
         this.Enabled = (bool)Data["enabled"];
     }
 
@@ -921,7 +922,7 @@ public class BrowserBoxData : WidgetData
     public BrowserBoxData(Dictionary<string, object> Data) : base(Data)
     {
         this.Text = (string)Data["text"];
-        this.Font = Font.Get((string)ValueFromPath(Data, "font", "name"), (int)(long)ValueFromPath(Data, "font", "size"));
+        this.Font = FontCache.GetOrCreate((string)ValueFromPath(Data, "font", "name"), (int)(long)ValueFromPath(Data, "font", "size"));
         this.TextColor = ColorFromPath(Data, "textcolor");
         this.ReadOnly = (bool)Data["readonly"];
         this.Enabled = (bool)Data["enabled"];

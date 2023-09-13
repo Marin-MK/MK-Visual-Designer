@@ -1,4 +1,6 @@
-﻿namespace VisualDesigner;
+﻿
+
+namespace VisualDesigner;
 
 [WidgetTypeAndName(typeof(BrowserBoxData), "browserbox")]
 public class DesignBrowserBox : DesignWidget

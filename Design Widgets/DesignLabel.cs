@@ -1,4 +1,6 @@
-﻿namespace VisualDesigner;
+﻿
+
+namespace VisualDesigner;
 
 [WidgetTypeAndName(typeof(LabelData), "label")]
 public class DesignLabel : DesignWidget

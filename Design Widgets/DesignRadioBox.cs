@@ -1,4 +1,6 @@
-﻿namespace VisualDesigner;
+﻿
+
+namespace VisualDesigner;
 
 [WidgetTypeAndName(typeof(RadioBoxData), "radiobox")]
 public class DesignRadioBox : DesignWidget

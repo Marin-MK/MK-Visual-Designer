@@ -1,4 +1,6 @@
-﻿namespace VisualDesigner;
+﻿
+
+namespace VisualDesigner;
 
 [WidgetTypeAndName(typeof(CheckBoxData), "checkbox")]
 public class DesignCheckBox : DesignWidget

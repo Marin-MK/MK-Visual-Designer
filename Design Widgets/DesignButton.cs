@@ -1,4 +1,6 @@
-﻿namespace VisualDesigner;
+﻿
+
+namespace VisualDesigner;
 
 [WidgetTypeAndName(typeof(ButtonData), "button")]
 public class DesignButton : DesignWidget

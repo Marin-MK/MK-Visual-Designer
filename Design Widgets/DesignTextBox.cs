@@ -1,5 +1,6 @@
 ﻿using amethyst.Animations;
 
+
 namespace VisualDesigner;
 
 [WidgetTypeAndName(typeof(TextBoxData), "textbox")]

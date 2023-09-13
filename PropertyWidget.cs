@@ -1,5 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 
+
 namespace VisualDesigner;
 
 public abstract class PropertyWidget : Widget
@@ -234,7 +235,8 @@ public class FontPropertyWidget : PropertyWidget
 					if (!win.Apply) return;
 					string name = win.Value1;
 					int size = win.Value2;
-					if (!Font.Exists(name))
+					string? fontFilename = ODL.FontResolver.ResolveFilename(name);
+                    if (fontFilename is null)
 					{
 						new MessageBox("Error", $"No font exists at the specified path '{name}'.", ButtonType.OK);
 						DropdownBox.SetSelectedIndex(0);
